@@ -158,8 +158,6 @@ function TVScene({ intensity = 1, warmth = 1 }) {
         .tv-video {
           width: 100%; height: 100%;
           object-fit: cover;
-          object-position: 50% 50%;
-          transform: scale(1.12);
           display: block;
           filter:
             brightness(calc(0.85 + 0.15 * var(--tv-intensity, 1)))
@@ -284,7 +282,7 @@ function MantelWallVideo({ expanded, mantelPath, wallPath }) {
           <div className="mantel-inner">
             {mantelSrc ? (
               <video key={mantelSrc} src={mantelSrc} autoPlay muted loop playsInline
-                style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block', transform:'scale(1.38)' }}/>
+                style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
             ) : (
               <div className="mantel-placeholder">— loading —</div>
             )}
