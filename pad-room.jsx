@@ -284,7 +284,7 @@ function MantelWallVideo({ expanded, mantelPath, wallPath }) {
           <div className="mantel-inner">
             {mantelSrc ? (
               <video key={mantelSrc} src={mantelSrc} autoPlay muted loop playsInline
-                style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+                style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block', transform:'scale(1.38)' }}/>
             ) : (
               <div className="mantel-placeholder">— loading —</div>
             )}
