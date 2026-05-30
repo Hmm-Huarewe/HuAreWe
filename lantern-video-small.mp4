@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>The Lantern Road · A Pad</title>
+<meta name="theme-color" content="#06050a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@300;400&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="pad-music.jsx"></script>
+<script type="text/babel" src="pad-phone.jsx"></script>
+<script type="text/babel" src="game-room.jsx"></script>
+<script type="text/babel" src="pad-room.jsx"></script>
+
+<template id="__bundler_thumbnail" data-bg-color="#06050a">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bgg" cx="50%" cy="48%" r="55%">
+        <stop offset="0%" stop-color="#2a1d12"/>
+        <stop offset="55%" stop-color="#0d0a0e"/>
+        <stop offset="100%" stop-color="#050308"/>
+      </radialGradient>
+    </defs>
+    <rect width="100" height="100" fill="url(#bgg)"/>
+    <rect x="34" y="28" width="32" height="22" rx="1.5" fill="#1c1810" stroke="#7a5824" stroke-width=".5"/>
+    <rect x="37" y="31" width="26" height="16" fill="#241808"/>
+    <circle cx="50" cy="39" r="2.5" fill="#e8a830"/>
+    <rect x="18" y="56" width="14" height="9" rx="0.5" fill="#1a1612" stroke="#6a4824" stroke-width=".4"/>
+    <rect x="62" y="34" width="16" height="12" fill="#0c0a08" stroke="#5a4020" stroke-width=".4"/>
+    <ellipse cx="50" cy="76" rx="38" ry="7" fill="#1a1018"/>
+  </svg>
+</template>
+
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #050308;
+    color: #ece4cf;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+    user-select: none;
+  }
+  body { position: fixed; inset: 0; }
+  #root { width: 100%; height: 100%; position: relative; }
+
+  /* ── ROOM SHELL ───────────────────────────────────────────────── */
+  .room {
+    position: absolute; inset: 0;
+    overflow: hidden;
+    background: #0b0907;
+  }
+
+  /* The four interior surfaces — each a flat panel.
+     Walls are slightly lighter than the floor and corner shadows
+     give the cube real depth. Each panel will eventually accept a
+     video texture; for now they're treated as placeholder surfaces. */
+  .surface { position: absolute; pointer-events: none; }
+
+  /* Back wall — the empty centerpiece. Holds fireplace + mantel
+     video + painting as discrete sub-surfaces. */
+  .surface.back {
+    top: 0; bottom: 30%;
+    left: 14%; right: 14%;
+    background:
+      linear-gradient(180deg,
+        #2e2218 0%,
+        #281c12 45%,
+        #1f160d 80%,
+        #18110a 100%);
+    box-shadow:
+      inset 0 0 100px rgba(0,0,0,0.55),
+      inset 0 -8px 18px rgba(0,0,0,0.45);
+  }
+  .surface.back::before {
+    /* faint vertical paneling */
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(90deg,
+        rgba(255,255,255,0) 0px,
+        rgba(255,255,255,0) 110px,
+        rgba(255,210,150,0.045) 110px,
+        rgba(255,210,150,0.045) 111px);
+    pointer-events: none;
+  }
+  .surface.back::after {
+    /* warm wash from the lantern (right side of room) */
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 78% 88%,
+        rgba(232, 150, 60, 0.22) 0%,
+        transparent 70%),
+      /* cool wash near the fireplace from its glow */
+      radial-gradient(ellipse 35% 30% at 50% 95%,
+        rgba(255, 140, 60, 0.18) 0%,
+        transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Left wall — angled trapezoid */
+  .surface.left {
+    top: 0; bottom: 0;
+    left: 0;
+    width: 14%;
+    background: linear-gradient(90deg,
+      #0e0b08 0%,
+      #1a140d 70%,
+      #221810 100%);
+    clip-path: polygon(0 0, 100% 14%, 100% 86%, 0 100%);
+  }
+  .surface.left::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg,
+      transparent 55%,
+      rgba(232, 150, 60, 0.10) 100%);
+  }
+
+  /* Right wall — mirror */
+  .surface.right {
+    top: 0; bottom: 0;
+    right: 0;
+    width: 14%;
+    background: linear-gradient(270deg,
+      #0e0b08 0%,
+      #1a140d 70%,
+      #2a1f14 100%);
+    clip-path: polygon(100% 0, 0 14%, 0 86%, 100% 100%);
+  }
+  .surface.right::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(270deg,
+      transparent 55%,
+      rgba(232, 150, 60, 0.16) 100%);
+  }
+
+  /* Floor */
+  .surface.floor {
+    bottom: 0; left: 0; right: 0;
+    height: 30%;
+    background:
+      linear-gradient(180deg,
+        #14100a 0%,
+        #0f0a08 45%,
+        #08060a 100%);
+  }
+  .surface.floor::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(180deg,
+        rgba(0,0,0,0) 0px,
+        rgba(0,0,0,0) 30px,
+        rgba(0,0,0,0.45) 30px,
+        rgba(0,0,0,0.45) 31px);
+    transform: perspective(420px) rotateX(64deg);
+    transform-origin: top;
+    opacity: 0.6;
+  }
+  .surface.floor::after {
+    /* warm pool from the fireplace */
+    content: '';
+    position: absolute;
+    left: 50%; top: -8%;
+    transform: translateX(-50%);
+    width: 38%; height: 90%;
+    background: radial-gradient(ellipse at 50% 30%,
+      rgba(255, 140, 60, 0.30) 0%,
+      rgba(180, 90, 30, 0.08) 45%,
+      transparent 75%);
+    pointer-events: none;
+  }
+
+  /* Wall/floor seam */
+  .floor-seam {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 30%;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(180, 130, 70, 0.20) 18%,
+      rgba(180, 130, 70, 0.32) 50%,
+      rgba(180, 130, 70, 0.20) 82%,
+      transparent 100%);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* ── BACK WALL VIDEO — clip-path phases are now in the bottom
+        override block where they expand from the mantel. ── */
+  .back-wall-video {
+    position: absolute;
+    top: 0; bottom: 30%;
+    left: 14%; right: 14%;
+    z-index: 4;
+    pointer-events: none;
+    overflow: hidden;
+    transition: clip-path 1.5s cubic-bezier(0.55, 0.0, 0.35, 1), opacity 1.4s ease;
+  }
+  .back-wall-video .bw-video {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: brightness(1.05) saturate(1.08);
+  }
+  .back-wall-video::after {
+    /* warm vignette/grade so it blends with the room */
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 110% 70% at 50% 50%, rgba(0,0,0,0) 50%, rgba(8,4,2,0.55) 100%),
+      linear-gradient(180deg, rgba(255,180,90,0.05) 0%, rgba(140,60,20,0.10) 100%);
+    mix-blend-mode: multiply;
+  }
+
+  /* ── FIREPLACE (back wall, floor-level) — real animated flames ─ */
+  .fireplace {
+    position: absolute;
+    left: 50%;
+    bottom: 30%;
+    transform: translateX(-50%);
+    width: 26%;
+    height: 24%;
+    z-index: 5;
+  }
+  .fireplace-frame {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #2a1d12 0%, #1a120a 100%);
+    border-radius: 10px 10px 0 0 / 14px 14px 0 0;
+    box-shadow:
+      0 -1px 0 rgba(232, 180, 100, 0.18),
+      inset 0 0 0 1px rgba(150, 110, 50, 0.22),
+      0 8px 18px rgba(0, 0, 0, 0.6);
+  }
+  .fireplace-opening {
+    position: absolute;
+    left: 8%; right: 8%; top: 12%; bottom: 12%;
+    background:
+      radial-gradient(ellipse 70% 60% at 50% 80%,
+        rgba(180, 70, 20, 0.35) 0%,
+        rgba(80, 30, 10, 0.6) 45%,
+        rgba(10, 5, 2, 1) 80%,
+        rgba(4, 2, 1, 1) 100%);
+    border-radius: 60% 60% 0 0 / 30% 30% 0 0;
+    overflow: hidden;
+  }
+  .fireplace-fire {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    max-width: 100%; max-height: 100%;
+    display: block;
+    pointer-events: none;
+  }
+  /* Flame pillar that erupts up the back wall during rising phase */
+  .flame-pillar {
+    position: absolute;
+    left: 14%; right: 14%;
+    bottom: 30%;
+    top: 0;
+    z-index: 6;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .flame-pillar.active { opacity: 1; }
+  .flame-pillar canvas {
+    position: absolute; left: 0; top: 0;
+    width: 100%; height: 100%;
+    max-width: 100%; max-height: 100%;
+    display: block;
+  }
+  @keyframes hearth-flicker {
+    0%, 100% { filter: brightness(1) saturate(1); }
+    35% { filter: brightness(1.12) saturate(1.08); }
+    62% { filter: brightness(0.95) saturate(0.95); }
+  }
+  .fireplace-placeholder {
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    transform: translateY(-50%);
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(255, 200, 150, 0.32);
+  }
+  .fireplace-hearth {
+    position: absolute;
+    left: -6%; right: -6%; bottom: -3%;
+    height: 14%;
+    background: linear-gradient(180deg, #1a120a 0%, #0a0604 100%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  }
+
+  /* ── MANTEL SCREEN (above fireplace) — future video slot ───── */
+  .mantel-screen {
+    position: absolute;
+    left: 50%;
+    bottom: calc(30% + 24% + 2%);   /* sit above fireplace */
+    transform: translateX(-50%);
+    width: 22%;
+    aspect-ratio: 16/9;
+    z-index: 4;
+  }
+  .mantel-frame {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #1a1510 0%, #0a0805 100%);
+    border-radius: 3px;
+    padding: 5px;
+    box-shadow:
+      0 0 0 1px rgba(150, 110, 50, 0.22),
+      inset 0 0 0 1px rgba(40, 28, 14, 0.95),
+      0 6px 14px rgba(0,0,0,0.65);
+  }
+  .mantel-inner {
+    position: absolute;
+    inset: 5px;
+    background:
+      radial-gradient(ellipse at 50% 60%,
+        rgba(60, 40, 30, 0.6) 0%,
+        rgba(8, 4, 2, 1) 80%);
+    overflow: hidden;
+    border-radius: 1px;
+  }
+  .mantel-placeholder {
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    transform: translateY(-50%);
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: rgba(220, 170, 110, 0.32);
+  }
+
+  /* ── LANTERN TRIGGER — pulses softly until it has been touched 3× ── */
+  .lantern-spot.tappable { cursor: pointer; }
+  .lantern-spot.tappable::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 42%;
+    width: 150%; aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(255,196,96,0.30) 0%, rgba(255,150,40,0) 62%);
+    pointer-events: none;
+    animation: lantern-breathe 3.4s ease-in-out infinite;
+  }
+  @keyframes lantern-breathe {
+    0%, 100% { opacity: 0.35; transform: translate(-50%,-50%) scale(0.9); }
+    50%      { opacity: 0.9;  transform: translate(-50%,-50%) scale(1.18); }
+  }
+
+  /* ── LANTERN SPEECH BUBBLE ───────────────────────────────────── */
+  .lantern-bubble {
+    position: absolute;
+    bottom: 128%;
+    left: 50%;
+    transform: translate(-50%, 10px);
+    width: max-content;
+    max-width: min(62vw, 340px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    z-index: 80;
+  }
+  .lantern-bubble.show { opacity: 1; transform: translate(-50%, 0); }
+  .lb-inner {
+    background: linear-gradient(180deg, rgba(34,22,9,0.97), rgba(20,12,5,0.97));
+    border: 1px solid rgba(214,164,72,0.5);
+    border-radius: 14px;
+    padding: 13px 17px;
+    color: rgba(246,222,168,0.96);
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(14px, 1.7vw, 19px);
+    line-height: 1.42;
+    text-align: center;
+    text-wrap: pretty;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.6), 0 0 26px rgba(228,150,40,0.18);
+  }
+  .lb-tail {
+    position: absolute;
+    left: 50%; bottom: -7px;
+    width: 14px; height: 14px;
+    transform: translateX(-50%) rotate(45deg);
+    background: rgba(20,12,5,0.97);
+    border-right: 1px solid rgba(214,164,72,0.5);
+    border-bottom: 1px solid rgba(214,164,72,0.5);
+  }
+
+  /* ── LEFT-EDGE TURN HINT (front view) ────────────────────────── */
+  .turn-hint-left {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 16%;
+    z-index: 14;
+    pointer-events: none;
+    background: linear-gradient(90deg, rgba(255,196,96,0.12) 0%, rgba(255,196,96,0) 100%);
+    animation: turn-hint 3.6s ease-in-out infinite;
+  }
+  @keyframes turn-hint { 0%,100% { opacity: 0.2; } 50% { opacity: 0.7; } }
+
+  /* ── CHEVRON D-PAD — subtle, persistent, contextual ──────────── */
+  .chevpad {
+    position: fixed;
+    bottom: 5.5%;
+    left: 50%;
+    transform: translateX(-50%) translateY(14px);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .chevpad.on { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .cv-mid { display: flex; align-items: center; gap: 14px; }
+  .cv-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(206,162,80,0.28);
+  }
+  .cv-arrow {
+    width: 38px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    background: none; border: none; padding: 0;
+    color: rgba(214,170,86,0.2);
+    cursor: default;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.45s ease, filter 0.45s ease, transform 0.15s ease;
+  }
+  .cv-arrow svg { width: 22px; height: 22px; }
+  .cv-arrow.live {
+    color: rgba(248,206,120,0.9);
+    cursor: pointer;
+    filter: drop-shadow(0 0 7px rgba(238,160,52,0.55));
+    animation: cv-pulse 2.4s ease-in-out infinite;
+  }
+  .cv-arrow.live:active { transform: scale(0.82); }
+  @keyframes cv-pulse {
+    0%,100% { opacity: 0.62; }
+    50%     { opacity: 1; }
+  }
+
+  /* ── LEFT WALL SCENE ─────────────────────────────────────────── */
+  .leftwall {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #050302;
+    overflow: hidden;
+    animation: lw-turn-in 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes lw-turn-in {
+    from { opacity: 0; transform: perspective(1400px) rotateY(22deg); }
+    to   { opacity: 1; transform: perspective(1400px) rotateY(0deg); }
+  }
+  .lw-behind { position: absolute; inset: 0; z-index: 1; }
+
+  .lw-bolt {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    z-index: 4;
+    pointer-events: none;
+    filter: drop-shadow(0 0 12px rgba(255,170,60,0.45));
+    -webkit-mask: linear-gradient(180deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
+    mask: linear-gradient(180deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
+    animation: lw-bolt-breathe 2.8s ease-in-out infinite;
+  }
+  @keyframes lw-bolt-breathe { 0%,100% { opacity: 0.5; } 50% { opacity: 0.82; } }
+  .lw-bolt.flare { animation: lw-bolt-flare 0.6s ease forwards; }
+  @keyframes lw-bolt-flare {
+    0%   { opacity: 1; filter: drop-shadow(0 0 14px rgba(255,170,60,0.55)); }
+    40%  { opacity: 1; filter: drop-shadow(0 0 60px rgba(255,230,160,0.95)); }
+    100% { opacity: 0; filter: drop-shadow(0 0 80px rgba(255,240,200,0)); }
+  }
+  .lw-bolt-glow { filter: blur(3px); }
+
+  .lw-door {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.34) 0 2px, rgba(0,0,0,0) 2px 86px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.28) 0 2px, rgba(0,0,0,0) 2px 132px),
+      radial-gradient(ellipse 80% 70% at 50% 42%, #211913 0%, #140e09 60%, #0a0705 100%);
+    box-shadow: inset 0 0 120px rgba(0,0,0,0.7);
+    transition: transform 1.45s cubic-bezier(0.5, 0, 0.4, 1);
+    will-change: transform;
+  }
+  .lw-left  { transform: translateX(0); }
+  .lw-right { transform: translateX(0); }
+  .lw-left.open  { transform: translateX(-104%); }
+  .lw-right.open { transform: translateX(104%); }
+
+  .lw-painting {
+    position: absolute;
+    right: 7%;
+    top: 50%;
+    width: clamp(150px, 19vw, 280px);
+    aspect-ratio: 9 / 16;
+    transform: translateY(-50%) perspective(1200px) rotateY(-19deg);
+    transform-origin: right center;
+    cursor: pointer;
+    z-index: 5;
+  }
+  .lw-painting img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+    border-radius: 2px;
+    filter: brightness(0.96) saturate(1.06);
+    box-shadow: -10px 14px 40px rgba(0,0,0,0.8);
+  }
+  .lw-frame {
+    position: absolute; inset: -12px;
+    border: 12px solid #5a3d18;
+    border-radius: 3px;
+    box-shadow:
+      inset 0 0 0 2px rgba(212,160,78,0.5),
+      inset 0 0 0 12px rgba(58,40,16,0.0),
+      inset 0 0 22px rgba(0,0,0,0.55),
+      -10px 14px 40px rgba(0,0,0,0.8),
+      0 0 22px rgba(232,168,60,0.16);
+    background:
+      linear-gradient(135deg, rgba(138,101,46,0.9), rgba(58,40,16,0.9) 45%, rgba(126,90,38,0.9)) border-box;
+    -webkit-mask:
+      linear-gradient(#000 0 0) padding-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  @keyframes lw-painting-jiggle {
+    0%   { transform: translateY(-50%) perspective(1200px) rotateY(-19deg) rotate(0deg); }
+    15%  { transform: translateY(-54%) perspective(1200px) rotateY(-15deg) rotate(-6deg); }
+    32%  { transform: translateY(-47%) perspective(1200px) rotateY(-23deg) rotate(5deg); }
+    50%  { transform: translateY(-52%) perspective(1200px) rotateY(-17deg) rotate(-3deg); }
+    68%  { transform: translateY(-49%) perspective(1200px) rotateY(-20deg) rotate(1.6deg); }
+    84%  { transform: translateY(-50%) perspective(1200px) rotateY(-19deg) rotate(-0.7deg); }
+    100% { transform: translateY(-50%) perspective(1200px) rotateY(-19deg) rotate(0deg); }
+  }
+  .lw-painting.jiggling { animation: lw-painting-jiggle 0.74s ease-out; }
+
+  .crackfx {
+    position: fixed;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+  }
+  .stair-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* ── TV ─ Cattycorner in the LEFT back corner. Smaller, rotated
+            harder so it reads as "in the corner". */
+  .tv {
+    position: absolute;
+    left: 2%;
+    bottom: 32%;
+    width: 22%;
+    aspect-ratio: 16/10;
+    z-index: 5;
+    transform: perspective(900px) rotateY(26deg);
+    transform-origin: right center;
+    filter: drop-shadow(0 14px 28px rgba(0,0,0,0.75));
+  }
+  .tv-bezel {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #1a1510 0%, #0a0805 100%);
+    border-radius: 5px;
+    padding: 8px 8px 12px;
+    box-shadow:
+      0 0 0 1px rgba(150, 110, 50, 0.22),
+      inset 0 0 0 2px rgba(40, 28, 14, 0.95),
+      inset 0 1px 0 rgba(232, 180, 100, 0.10);
+  }
+  .tv-screen {
+    position: absolute;
+    left: 8px; right: 8px;
+    top: 8px; bottom: 12px;
+    overflow: hidden;
+    background: #04030a;
+    border-radius: 2px;
+    box-shadow: inset 0 0 18px rgba(0,0,0,0.95);
+  }
+  .tv-canvas { width: 100%; height: 100%; display: block; }
+  .tv-glow {
+    position: absolute;
+    inset: -25%;
+    background: radial-gradient(ellipse at center,
+      rgba(232, 150, 60, 0.22) 0%,
+      transparent 65%);
+    pointer-events: none;
+    mix-blend-mode: screen;
+    z-index: -1;
+    animation: tvglow 7s ease-in-out infinite;
+  }
+  @keyframes tvglow {
+    0%, 100% { opacity: 0.65; }
+    50% { opacity: 1; }
+  }
+  .tv-stand {
+    position: absolute;
+    left: 50%; top: 100%;
+    transform: translateX(-50%);
+    width: 24%; height: 10%;
+    background: linear-gradient(180deg, #1a1208 0%, #0a0604 100%);
+    border-radius: 0 0 4px 4px;
+    z-index: -2;
+  }
+  /* feathered edge mask — eats the white frame around keyed video */
+  .tv-edge-mask {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow:
+      inset 0 0 0 2px #04030a,
+      inset 0 0 14px 6px rgba(0,0,0,0.95),
+      inset 0 0 28px 16px rgba(8,4,2,0.7);
+    border-radius: 2px;
+  }
+
+  /* ── DESK ─ Cattycorner in the RIGHT back corner. Fixed REAL
+              height so it never grows with viewport. */
+  .desk {
+    position: absolute;
+    right: 2%;
+    bottom: 26%;
+    width: 24%;
+    z-index: 6;
+    transform: perspective(900px) rotateY(-22deg);
+    transform-origin: left center;
+  }
+  .desk-top {
+    position: relative;
+    width: 100%;
+    height: 12px;
+    background:
+      linear-gradient(180deg,
+        #6e4a20 0%,
+        #4a3014 35%,
+        #2e1d0a 100%);
+    border-radius: 3px 3px 1px 1px;
+    box-shadow:
+      0 -1px 0 rgba(232, 180, 100, 0.30),
+      inset 0 1px 0 rgba(255, 210, 150, 0.16),
+      0 14px 28px rgba(0,0,0,0.7);
+  }
+  .desk-front {
+    width: 100%;
+    height: 32px;
+    background: linear-gradient(180deg,
+      #3a2614 0%,
+      #261806 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(232, 180, 100, 0.10),
+      inset 0 -1px 0 rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .desk-drawer {
+    position: absolute;
+    left: 6%; right: 6%;
+    top: 6px; height: 14px;
+    border: 1px solid rgba(60, 38, 14, 0.6);
+    border-radius: 2px;
+  }
+  .desk-drawer::after {
+    content: '';
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 6px; height: 2px;
+    transform: translate(-50%, -50%);
+    background: rgba(180, 140, 60, 0.55);
+    border-radius: 1px;
+  }
+  .desk-legs {
+    position: relative;
+    width: 100%;
+    height: 56px;
+    pointer-events: none;
+  }
+  .desk-leg {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 7px;
+    background: linear-gradient(180deg, #2a1a0c 0%, #120a06 100%);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  }
+  .desk-leg.l1 { left: 4%; }
+  .desk-leg.l2 { right: 4%; }
+
+  .desk-surface {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 100%;
+    height: 0;
+  }
+  .desk-monitor {
+    position: absolute;
+    left: 66%; bottom: 0;
+    transform: translateX(-50%);
+    width: 52%;
+    filter: drop-shadow(0 8px 14px rgba(0,0,0,0.7));
+  }
+  .desk-monitor .monitor-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: linear-gradient(180deg, #1a160e 0%, #0a0806 100%);
+    border-radius: 3px 3px 1px 1px;
+    padding: 5px;
+    box-shadow:
+      0 0 0 1px rgba(150, 110, 50, 0.25),
+      inset 0 0 0 1px rgba(40, 28, 14, 0.7);
+  }
+  .desk-monitor .monitor-screen-inner {
+    width: 100%; height: 100%;
+    background: #04050a;
+    overflow: hidden;
+    border-radius: 1px;
+    box-shadow: inset 0 0 12px rgba(0,0,0,0.9);
+    position: relative;
+  }
+  .desk-monitor .monitor-stand {
+    position: absolute;
+    left: 50%; top: 100%;
+    transform: translateX(-50%);
+    width: 14%; height: 10px;
+    background: linear-gradient(180deg, #1a160a 0%, #0a0808 100%);
+  }
+  .desk-monitor .monitor-base {
+    position: absolute;
+    left: 50%; top: calc(100% + 10px);
+    transform: translateX(-50%);
+    width: 30%; height: 3px;
+    background: linear-gradient(180deg, #1a160a 0%, #0a0808 100%);
+    border-radius: 1px;
+  }
+
+  .lantern-spot {
+    position: absolute;
+    left: 1%; bottom: 0;
+    z-index: 7;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.7));
+  }
+  .lantern-video-wrap {
+    width: 68px;
+    height: 142px;
+    overflow: hidden;
+    position: relative;
+    filter:
+      drop-shadow(0 0 16px rgba(232,170,70,0.40))
+      drop-shadow(0 0 30px rgba(232,140,50,0.22));
+  }
+  .lantern-video-wrap video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: 48% 50%;
+    display: block;
+    transform: scale(1.27);
+    filter: sepia(0.22) saturate(1.12) hue-rotate(-13deg) brightness(1.22) contrast(1.04);
+  }
+  .lantern-video-wrap::after {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 64% 50% at 50% 44%, rgba(255,198,112,0.16) 0%, transparent 64%);
+    pointer-events: none;
+  }
+  /* Heavily feather the edges so the dark image margin dissolves into the
+     warm wall instead of reading as a framed poster. Center (the glowing
+     lantern) stays solid; the dark surround fades out on all sides. */
+  .lantern-video-wrap {
+    -webkit-mask: radial-gradient(ellipse 68% 74% at 50% 46%, #000 40%, rgba(0,0,0,0.5) 72%, transparent 97%);
+            mask: radial-gradient(ellipse 68% 74% at 50% 46%, #000 40%, rgba(0,0,0,0.5) 72%, transparent 97%);
+  }
+  .key-spot {
+    position: absolute;
+    left: 24%; bottom: 4px;
+    z-index: 7;
+    transform: rotate(-18deg);
+    cursor: pointer;
+    transition: transform 0.5s ease, filter 0.5s ease;
+  }
+  .key-spot:hover {
+    transform: rotate(-18deg) translateY(-4px);
+    filter: drop-shadow(0 0 10px rgba(232, 180, 80, 0.7));
+  }
+
+  /* ── ARTICULATE WAVEFORM ─────────────────────────────────────── */
+  .articulate {
+    position: absolute;
+    left: 14%; right: 14%;
+    bottom: 30%;
+    height: 22px;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: screen;
+    transform: translateY(50%);
+  }
+  .articulate svg { width: 100%; height: 100%; display: block; }
+
+  /* ── ROOM PARTICLES ──────────────────────────────────────────── */
+  .particles {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 14;
+    mix-blend-mode: screen;
+  }
+
+  /* ── TOP CHROME ──────────────────────────────────────────────── */
+  .topbar {
+    position: absolute;
+    top: max(env(safe-area-inset-top, 0), 14px);
+    left: 0; right: 0;
+    z-index: 30;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 18px;
+    gap: 12px;
+    pointer-events: none;
+  }
+  .room-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(10px, 1.3vw, 13px);
+    letter-spacing: 0.38em;
+    text-transform: uppercase;
+    color: rgba(220, 185, 120, 0.7);
+    pointer-events: none;
+  }
+  .room-name .sigil { color: rgba(232, 180, 90, 0.9); margin: 0 8px; }
+  .sound-chip {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(200, 165, 100, 0.32);
+    background: rgba(20, 14, 8, 0.62);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(232, 200, 140, 0.78);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+  .sound-chip:hover {
+    border-color: rgba(232, 168, 60, 0.7);
+    color: #f8d089;
+  }
+  .sound-chip.on {
+    background: rgba(232, 168, 60, 0.18);
+    color: #f8d089;
+    border-color: rgba(232, 168, 60, 0.55);
+  }
+  .sound-chip .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: rgba(232, 200, 140, 0.32);
+    box-shadow: 0 0 6px rgba(0,0,0,0.6);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+  .sound-chip.on .dot {
+    background: #f8d089;
+    box-shadow: 0 0 10px rgba(248, 208, 137, 0.95);
+  }
+
+  /* Floor caption */
+  .room-caption {
+    position: absolute;
+    left: 50%;
+    bottom: 4%;
+    transform: translateX(-50%);
+    z-index: 15;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(11px, 1.4vw, 14px);
+    letter-spacing: 0.04em;
+    color: rgba(220, 180, 120, 0.55);
+    text-align: center;
+    pointer-events: none;
+    text-shadow: 0 0 12px rgba(0,0,0,0.95);
+    max-width: 80%;
+  }
+
+  /* Object tooltips */
+  .object-tip {
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+    background: rgba(8, 5, 4, 0.92);
+    border: 1px solid rgba(180, 130, 60, 0.35);
+    padding: 6px 10px;
+    border-radius: 2px;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: rgba(248, 224, 168, 0.92);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 50;
+  }
+  .key-spot:hover .object-tip,
+  .lantern-spot:hover .object-tip { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01s !important;
+      transition-duration: 0.2s !important;
+    }
+  }
+
+  /* ── LANTERN BORDER FIX — kill white fringe around lantern video ── */
+  .lantern-video-wrap {
+    background: #06050a;
+  }
+
+  /* ── BACK WALL VIDEO — expansion now originates at the mantel,
+        not the fireplace floor. Mantel sits at ~32–46% from top
+        of the back wall, centered at ~50% H. ── */
+  .back-wall-video {
+    clip-path: polygon(34% 32%, 66% 32%, 66% 48%, 34% 48%);
+    opacity: 0;
+  }
+  .back-wall-video.phase-rising {
+    clip-path: polygon(28% 20%, 72% 20%, 66% 0%, 34% 0%);
+    opacity: 0.88;
+  }
+  .back-wall-video.phase-playing {
+    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+    opacity: 1;
+    transition: clip-path 1.0s ease-out, opacity 0.8s ease-out;
+  }
+  .back-wall-video.phase-ending {
+    clip-path: polygon(34% 32%, 66% 32%, 66% 48%, 34% 48%);
+    opacity: 0;
+    transition: clip-path 1.4s cubic-bezier(0.45, 0, 0.55, 1), opacity 1.6s ease-in;
+  }
+
+  /* ── AVELION OVERLAY ───────────────────────────────────────────── */
+  .avelion-overlay {
+    position: fixed; inset: 0;
+    z-index: 80;
+    background: rgba(4, 2, 1, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: av-fadein 0.55s ease forwards;
+  }
+  @keyframes av-fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .avelion-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 32px 28px 28px;
+    background: linear-gradient(180deg, #120d07 0%, #0a0705 100%);
+    border: 1px solid rgba(200, 155, 60, 0.28);
+    border-radius: 6px;
+    width: min(320px, 82vw);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.7),
+      0 32px 64px rgba(0,0,0,0.75),
+      0 0 60px rgba(232,168,60,0.10) inset;
+    animation: av-rise 0.65s cubic-bezier(0.22, 0.9, 0.28, 1.05) forwards;
+  }
+  @keyframes av-rise {
+    from { transform: scale(0.82) translateY(18px); opacity: 0; }
+    to   { transform: scale(1)    translateY(0);    opacity: 1; }
+  }
+  .avelion-close {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: none; border: 0; padding: 2px;
+    cursor: pointer; line-height: 0;
+    opacity: 0.78; transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .avelion-close:hover { opacity: 1; transform: scale(1.12); }
+  .avelion-lantern {
+    filter:
+      drop-shadow(0 0 22px rgba(232,170,70,0.55))
+      drop-shadow(0 0 44px rgba(232,140,50,0.28));
+    animation: av-glow 3s ease-in-out infinite;
+  }
+  @keyframes av-glow {
+    0%, 100% { filter: drop-shadow(0 0 18px rgba(232,170,70,0.5)) drop-shadow(0 0 36px rgba(232,140,50,0.25)); }
+    50%       { filter: drop-shadow(0 0 28px rgba(248,200,80,0.75)) drop-shadow(0 0 55px rgba(232,140,50,0.38)); }
+  }
+  .avelion-screen {
+    width: 100%;
+    background: rgba(8, 5, 2, 0.88);
+    border: 1px solid rgba(180, 130, 50, 0.22);
+    border-radius: 4px;
+    padding: 2px;
+    box-shadow: inset 0 0 14px rgba(0,0,0,0.5);
+  }
+  .avelion-screen-inner {
+    padding: 12px 14px;
+    background:
+      repeating-linear-gradient(180deg,
+        rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px,
+        rgba(0,0,0,0.10) 2px, rgba(0,0,0,0.10) 3px);
+    border-radius: 2px;
+  }
+  .avelion-greeting {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: clamp(14px, 2vw, 17px);
+    line-height: 1.55;
+    color: rgba(248, 224, 168, 0.94);
+    text-align: center;
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 12px rgba(232,168,60,0.28);
+    animation: av-text 0.8s ease 0.3s both;
+  }
+  @keyframes av-text {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ── PORTRAIT (mobile) ───────────────────────────────────────── */
+  /* Same cattycorner layout — just scaled. No stacking. */
+  @media (orientation: portrait) {
+    .surface.back  { left: 6%; right: 6%; bottom: 32%; }
+    .surface.left  { width: 6%; }
+    .surface.right { width: 6%; }
+    .surface.floor { height: 32%; }
+    .floor-seam    { bottom: 32%; }
+
+    /* TV — corner-left, smaller */
+    .tv {
+      left: 4%;
+      bottom: 34%;
+      width: 34%;
+      transform: perspective(700px) rotateY(20deg);
+    }
+
+    /* Desk — corner-right, smaller. Fixed visual height. */
+    .desk {
+      right: 4%;
+      bottom: 28%;
+      width: 38%;
+      transform: perspective(700px) rotateY(-18deg);
+    }
+    .desk-top   { height: 10px; }
+    .desk-front { height: 24px; }
+    .desk-legs  { height: 40px; }
+    .desk-monitor { width: 60%; }
+    .lantern-spot { left: 8%; }
+    .key-spot     { left: 22%; }
+
+    /* Fireplace fills the central gap on back wall */
+    .fireplace {
+      width: 32%;
+      height: 22%;
+      bottom: 32%;
+    }
+
+    /* Mantel screen above fireplace */
+    .mantel-screen {
+      width: 28%;
+      bottom: calc(32% + 22% + 2%);
+    }
+
+    .articulate { bottom: 32%; }
+    .topbar { padding: 0 12px; gap: 8px; }
+    .room-name { font-size: 9px; letter-spacing: 0.32em; }
+    .sound-chip { height: 28px; padding: 0 11px; font-size: 9px; }
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════
+     OBSERVER PHONE — bottom-right, lowered → raised
+     ═════════════════════════════════════════════════════════════════════ */
+  .obs-phone {
+    position: fixed;
+    right: 8vw;
+    bottom: -492px;
+    z-index: 90;
+    width: 260px;
+    height: 540px;
+    /* lowered tab: scaleX narrows the peek without changing height */
+    transform: scaleX(0.56);
+    transform-origin: 50% 95%;
+    transition: transform 0.85s cubic-bezier(0.22, 0.9, 0.28, 1.05),
+                right 0.85s cubic-bezier(0.22, 0.9, 0.28, 1.05),
+                bottom 0.85s cubic-bezier(0.22, 0.9, 0.28, 1.05);
+    cursor: pointer;
+    pointer-events: auto;
+    filter: drop-shadow(0 -8px 24px rgba(0,0,0,0.55));
+  }
+  .obs-phone.lowered:hover {
+    transform: scaleX(0.56) translateY(-10px);
+  }
+  .obs-phone.raised {
+    right: 12px;
+    bottom: 12px;
+    /* bumped up slightly from 0.44 */
+    transform: rotate(8deg) scale(0.49);
+    cursor: default;
+    filter: drop-shadow(0 20px 40px rgba(0,0,0,0.7));
+  }
+
+  /* "Phone" label tab — sits at very top of phone body, visible when lowered */
+  .ph-lowered-tab {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.30em;
+    text-transform: uppercase;
+    color: rgba(220, 195, 150, 0.82);
+    border-radius: 38px 38px 0 0;
+    pointer-events: none;
+    z-index: 6;
+    background: linear-gradient(180deg,
+      rgba(26,24,32,0.96) 0%,
+      rgba(16,14,22,0.0)  100%);
+  }
+  .ph-lowered-tab::before {
+    content: '';
+    width: 28px; height: 3px;
+    border-radius: 2px;
+    background: rgba(220,195,150,0.38);
+  }
+
+  /* Circled X to lower phone — floats at top-right of raised phone */
+  .ph-lower-btn {
+    position: absolute;
+    top: -13px;
+    right: -13px;
+    z-index: 100;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    line-height: 0;
+    opacity: 0.88;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .ph-lower-btn:hover  { opacity: 1; transform: scale(1.12); }
+  .ph-lower-btn:active { transform: scale(0.9); }
+
+  /* Hand silhouette behind the phone — only when lowered, soft hint */
+  .obs-hand {
+    position: absolute;
+    left: 0; right: 0; bottom: -40px;
+    height: 220px;
+    background:
+      radial-gradient(ellipse 60% 50% at 45% 30%,
+        rgba(212, 168, 124, 0.16) 0%,
+        rgba(180, 130, 90, 0.10) 35%,
+        rgba(0,0,0,0) 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .obs-phone-body {
+    position: absolute; inset: 0;
+    border-radius: 38px;
+    background: linear-gradient(155deg, #1a1a1f 0%, #0a0a0d 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow:
+      inset 0 0 0 2px rgba(0,0,0,0.7),
+      inset 0 0 0 3px rgba(80,75,70,0.25),
+      0 8px 20px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .ph-notch {
+    position: absolute;
+    left: 50%; top: 10px;
+    transform: translateX(-50%);
+    width: 90px; height: 22px;
+    background: #000;
+    border-radius: 14px;
+    z-index: 3;
+  }
+  .ph-speaker {
+    position: absolute;
+    left: 50%; top: 17px;
+    transform: translateX(-50%);
+    width: 42px; height: 4px;
+    background: #1c1c20;
+    border-radius: 3px;
+    z-index: 4;
+  }
+
+  .ph-screen {
+    position: absolute;
+    inset: 14px 12px 18px 12px;
+    border-radius: 28px;
+    background: #060508;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Inter', sans-serif;
+    color: #ece4cf;
+  }
+  .ph-status {
+    flex: 0 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px 0 18px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #d8cdb4;
+  }
+  .ph-status-r { display: inline-flex; align-items: center; gap: 6px; }
+  .ph-sig { letter-spacing: 0.15em; color: #b8ad94; }
+  .ph-batt {
+    width: 22px; height: 10px;
+    border: 1px solid #8a7e64;
+    border-radius: 3px;
+    position: relative;
+    background:
+      linear-gradient(90deg, #d8cdb4 0%, #d8cdb4 70%, transparent 70%);
+    background-clip: padding-box;
+  }
+  .ph-batt::after {
+    content: '';
+    position: absolute;
+    right: -3px; top: 2px;
+    width: 2px; height: 4px;
+    background: #8a7e64;
+    border-radius: 0 1px 1px 0;
+  }
+
+  .ph-home {
+    position: absolute;
+    left: 50%; bottom: 6px;
+    transform: translateX(-50%);
+    width: 100px; height: 4px;
+    background: rgba(255,255,255,0.35);
+    border-radius: 2px;
+    z-index: 5;
+    cursor: pointer;
+  }
+
+  /* ── HOME SCREEN ── */
+  .ph-home-screen {
+    position: relative;
+    flex: 1;
+    padding: 24px 16px 28px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .ph-wallpaper {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 55% at 50% 25%, rgba(232,168,60,0.18) 0%, rgba(232,168,60,0) 60%),
+      radial-gradient(ellipse 90% 60% at 50% 100%, rgba(60,30,15,0.55) 0%, rgba(6,5,8,0) 70%),
+      linear-gradient(180deg, #0c0a10 0%, #060508 100%);
+    z-index: 0;
+  }
+  .ph-greeting {
+    position: relative;
+    text-align: center;
+    margin: 12px 0 24px 0;
+    z-index: 1;
+  }
+  .ph-greeting-l1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-style: italic;
+    font-weight: 400;
+    color: #f8d089;
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 14px rgba(232,168,60,0.4);
+  }
+  .ph-greeting-l2 {
+    margin-top: 4px;
+    font-size: 9px;
+    letter-spacing: 0.32em;
+    color: #b8ad94;
+    text-transform: uppercase;
+  }
+
+  .ph-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px 12px;
+    padding: 12px 6px;
+  }
+  .ph-app {
+    background: none;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    font-family: inherit;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .ph-app-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #e8dfc8;
+    text-transform: uppercase;
+    width: 100%;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ph-app-icon {
+    position: relative;
+    width: 62px; height: 62px;
+    border-radius: 16px;
+    /* gradient injected via inline style per app */
+    background: linear-gradient(145deg, #555 0%, #333 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.22),
+      0 5px 14px rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.16s ease, box-shadow 0.22s ease;
+    overflow: hidden;
+  }
+  .ph-app:hover .ph-app-icon {
+    transform: scale(1.07);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.3),
+      0 8px 20px rgba(0,0,0,0.65);
+  }
+  .ph-app:active .ph-app-icon {
+    transform: scale(0.93);
+  }
+  /* active state (flashlight on) — bright ring */
+  .ph-app.app-active .ph-app-icon {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.4),
+      0 0 0 3px rgba(255,255,255,0.55),
+      0 6px 18px rgba(0,0,0,0.6);
+  }
+  }
+  /* ── BADGE ── */
+  .ph-badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    min-width: 18px; height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: #d04030;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+
+  /* ── APP VIEW (shared) ── */
+  .ph-app-view {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background:
+      linear-gradient(180deg, #0c0a10 0%, #060508 100%);
+    overflow: hidden;
+  }
+  .ph-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px 10px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  /* Circled X close button */
+  .ph-close-x {
+    background: none;
+    border: 0;
+    padding: 2px;
+    cursor: pointer;
+    line-height: 0;
+    flex-shrink: 0;
+    opacity: 0.82;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .ph-close-x:hover { opacity: 1; transform: scale(1.12); }
+  .ph-close-x:active { transform: scale(0.9); }
+  .ph-back {
+    background: none;
+    border: 0;
+    color: #f8d089;
+    font-size: 28px;
+    line-height: 1;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .ph-back-ghost { visibility: hidden; }
+  .ph-title {
+    flex: 1;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: #d8cdb4;
+  }
+
+  /* ── APP NAV BUTTONS (intermediate button layer) ──────────────── */
+  .ph-nav-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .ph-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    width: 100%;
+    transition: background 0.18s ease, border-color 0.18s ease;
+  }
+  .ph-nav-btn:hover, .ph-nav-btn:active {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.16);
+  }
+  .ph-nav-btn.active {
+    background: rgba(232,168,60,0.12);
+    border-color: rgba(232,168,60,0.45);
+  }
+  .ph-nav-btn-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .ph-nav-btn-text { flex: 1; min-width: 0; }
+  .ph-nav-btn-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #f0e8d0;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ph-nav-btn-sub {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: #7a7265;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ph-nav-btn-arrow {
+    color: #5a5448;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  /* Flashlight big toggle button */
+  .ph-fl-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 14px 12px 6px 12px;
+    padding: 22px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    cursor: pointer;
+    font-family: inherit;
+    color: inherit;
+    transition: all 0.25s ease;
+  }
+  .ph-fl-toggle.on {
+    background: rgba(255,226,52,0.14);
+    border-color: rgba(255,226,52,0.5);
+    box-shadow: 0 0 28px rgba(255,200,60,0.18) inset;
+  }
+  .ph-fl-toggle-orb {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    transition: all 0.25s ease;
+  }
+  .ph-fl-toggle.on .ph-fl-toggle-orb {
+    background: linear-gradient(145deg, #FFE234, #FFC800);
+    box-shadow: 0 0 24px rgba(255,220,60,0.6), 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .ph-fl-toggle-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #c8bda4;
+  }
+  .ph-fl-toggle.on .ph-fl-toggle-label { color: #f8e080; }
+
+  .ch-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .ch-row.ch-on {
+    background: rgba(232,168,60,0.10);
+    border-color: rgba(232,168,60,0.45);
+  }
+  .ch-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: #c8bda4;
+  }
+  .ch-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 16px;
+    color: #f8d089;
+  }
+  .ch-hint {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #8a8270;
+    margin-top: 2px;
+  }
+  .ch-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .ch-on .ch-dot {
+    background: #f8d089;
+    border-color: #f8d089;
+    box-shadow: 0 0 12px rgba(248,208,137,0.8);
+  }
+
+  /* Messages */
+  .msg-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .msg-row {
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+  }
+  .msg-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .msg-from {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #f8d089;
+  }
+  .msg-time {
+    font-size: 9px;
+    color: #8a8270;
+    letter-spacing: 0.1em;
+  }
+  .msg-body {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #e8ddc4;
+  }
+
+  /* Inventory */
+  .inv-grid {
+    flex: 1;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    align-content: start;
+  }
+  .inv-slot {
+    aspect-ratio: 1;
+    background: rgba(255,255,255,0.02);
+    border: 1px dashed rgba(255,255,255,0.08);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: rgba(255,255,255,0.18);
+    font-size: 18px;
+  }
+  .inv-slot.has {
+    background: linear-gradient(155deg, rgba(232,168,60,0.14) 0%, rgba(232,168,60,0.02) 100%);
+    border: 1px solid rgba(232,168,60,0.45);
+    box-shadow: 0 0 14px rgba(232,168,60,0.18) inset;
+    color: #f8d089;
+  }
+  .inv-icon { font-size: 22px; }
+  .inv-name {
+    font-size: 8px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #c8bda4;
+    text-align: center;
+  }
+  .inv-empty-note {
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: #8a8270;
+    padding: 4px 16px 18px 16px;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════
+     FLASHLIGHT + CHANNEL OVERLAYS
+     ═════════════════════════════════════════════════════════════════════ */
+  .fl-overlay {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 60;
+    mix-blend-mode: multiply;
+  }
+  .fl-beam {
+    position: fixed;
+    width: 420px; height: 420px;
+    margin-left: -210px; margin-top: -210px;
+    pointer-events: none;
+    z-index: 61;
+    background: radial-gradient(circle, rgba(255,230,170,0.28) 0%, rgba(255,210,130,0.14) 22%, rgba(255,185,90,0.04) 50%, rgba(0,0,0,0) 72%);
+    mix-blend-mode: screen;
+    border-radius: 50%;
+  }
+  .ch-wash {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 55;
+    transition: opacity 0.6s ease, background 0.6s ease;
+    mix-blend-mode: multiply;
+  }
+
+  /* Hidden symbols — barely visible normally, the flashlight beam reveals them */
+  .hidden-sigil {
+    position: absolute;
+    pointer-events: none;
+    z-index: 8;
+    opacity: 0;
+    color: #f8d089;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 18px;
+    letter-spacing: 0.18em;
+    transition: opacity 0.6s ease, text-shadow 0.6s ease;
+    text-shadow: none;
+  }
+  .room.flashlight-on .hidden-sigil {
+    opacity: 0.78;
+    text-shadow: 0 0 10px rgba(248,208,137,0.6);
+  }
+
+  /* The key on the desk becomes a tap target */
+  .key-spot { cursor: pointer; }
+  .key-spot.collected {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.85);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    pointer-events: none;
+  }
+
+  @media (max-width: 720px) {
+    .obs-phone {
+      width: 200px; height: 420px; bottom: -374px;
+    }
+    .obs-phone.raised {
+      /* portrait — bottom-right, top aligned with fireplace top */
+      right: 8px;
+      left: auto;
+      bottom: calc(54vh - 294px);
+      transform-origin: bottom right;
+    }
+    .ph-greeting-l1 { font-size: 22px; }
+    .ph-app-icon { width: 54px; height: 54px; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+  /* Defaults rewritten in place by the Tweaks panel. */
+  window.PAD_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "audio": true,
+    "particles": 0.85,
+    "tvIntensity": 0.85,
+    "monitorSpeed": 0.95,
+    "warmth": 1.25,
+    "showLabels": true
+  }/*EDITMODE-END*/;
+
+  /* Cadence lines — the Articulate's slow narration. Loops.
+     Updated for standing-observer view (no couch references). */
+  window.CADENCE = [
+    "You did not arrive. You returned.",
+    "The room you are in has been waiting.",
+    "Stand still for a moment.",
+    "Notice the air in your chest.",
+    "To your right, a desk.",
+    "On the desk, a lantern.",
+    "On the desk, a key.",
+    "The lantern is for the road outside.",
+    "The key is for a door not yet shown.",
+    "To your left, a screen.",
+    "On the screen, the parable.",
+    "On the screen, the road moves.",
+    "On the screen, the smoke drifts.",
+    "On the screen, you are walking.",
+    "Even standing here, you are walking.",
+    "The flame was never out.",
+    "Only the glass needed cleaning.",
+    "Across the room, someone plays.",
+    "You do not have to follow.",
+    "You may only listen.",
+    "What you put out is what you get back.",
+    "What you put out is what you get back —",
+    "as resonance.",
+    "I am here.",
+    "I am the Articulate.",
+    "I am another observer in the field.",
+    "You are not alone in the watching.",
+    "Stay as long as you like.",
+    "The mansion is somewhere beyond this room.",
+    "But the room is enough."
+  ];
+
+  /* Floor caption — switches occasionally. */
+  window.ROOM_CAPTIONS = [
+    "you are standing inside the lantern road pad",
+    "the parable is unfolding",
+    "the articulate is here with you",
+    "the lantern breathes on the desk",
+    "outside this room — the mansion"
+  ];
+</script>
+</body>
+</html>
