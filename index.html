@@ -10,7 +10,11 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@300;400&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@300;400&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Cinzel:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+<!-- Persistent user memory — must load BEFORE the React/Babel scripts so
+     window.PadMemory exists when components initialise their state. -->
+<script src="pad-memory.js"></script>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -72,28 +76,27 @@
   /* Back wall — the empty centerpiece. Holds fireplace + mantel
      video + painting as discrete sub-surfaces. */
   .surface.back {
-    top: 0; bottom: 30%;
+    top: 0; bottom: 23%;
     left: 14%; right: 14%;
-    background:
-      linear-gradient(180deg,
-        #2e2218 0%,
-        #281c12 45%,
-        #1f160d 80%,
-        #18110a 100%);
+    background-image: url('assets/stone-wall.png');
+    background-size: 520px auto;
+    background-repeat: repeat;
+    background-position: center top;
     box-shadow:
       inset 0 0 100px rgba(0,0,0,0.55),
       inset 0 -8px 18px rgba(0,0,0,0.45);
   }
   .surface.back::before {
-    /* faint vertical paneling */
+    /* warm-dark grade so the cool stone settles into the firelit room */
     content: '';
     position: absolute; inset: 0;
     background:
-      repeating-linear-gradient(90deg,
-        rgba(255,255,255,0) 0px,
-        rgba(255,255,255,0) 110px,
-        rgba(255,210,150,0.045) 110px,
-        rgba(255,210,150,0.045) 111px);
+      linear-gradient(180deg,
+        rgba(44,31,18,0.20) 0%,
+        rgba(36,25,14,0.26) 45%,
+        rgba(24,17,9,0.36) 80%,
+        rgba(18,12,7,0.46) 100%);
+    mix-blend-mode: multiply;
     pointer-events: none;
   }
   .surface.back::after {
@@ -152,7 +155,7 @@
   /* Floor */
   .surface.floor {
     bottom: 0; left: 0; right: 0;
-    height: 30%;
+    height: 23%;
     background:
       linear-gradient(180deg,
         #14100a 0%,
@@ -190,7 +193,7 @@
   .floor-seam {
     position: absolute;
     left: 0; right: 0;
-    bottom: 30%;
+    bottom: 23%;
     height: 1px;
     background: linear-gradient(90deg,
       transparent 0%,
@@ -206,7 +209,7 @@
         override block where they expand from the mantel. ── */
   .back-wall-video {
     position: absolute;
-    top: 0; bottom: 30%;
+    top: 0; bottom: 23%;
     left: 14%; right: 14%;
     z-index: 4;
     pointer-events: none;
@@ -235,7 +238,7 @@
   .fireplace {
     position: absolute;
     left: 50%;
-    bottom: 30%;
+    bottom: 23%;
     transform: translateX(-50%);
     width: 26%;
     height: 24%;
@@ -268,6 +271,7 @@
     left: 0; top: 0;
     width: 100%; height: 100%;
     max-width: 100%; max-height: 100%;
+    object-fit: cover;
     display: block;
     pointer-events: none;
   }
@@ -275,7 +279,7 @@
   .flame-pillar {
     position: absolute;
     left: 14%; right: 14%;
-    bottom: 30%;
+    bottom: 23%;
     top: 0;
     z-index: 6;
     pointer-events: none;
@@ -318,9 +322,9 @@
   .mantel-screen {
     position: absolute;
     left: 50%;
-    bottom: calc(30% + 24% + 2%);   /* sit above fireplace */
+    bottom: calc(23% + 24% + 2%);   /* sit above fireplace */
     transform: translateX(-50%);
-    width: 22%;
+    width: 34%;
     aspect-ratio: 16/9;
     z-index: 4;
   }
@@ -375,19 +379,23 @@
   }
 
   /* ── LANTERN SPEECH BUBBLE ───────────────────────────────────── */
+  /* Room-level overlay (NOT inside the 3D desk) so it never skews or clips.
+     Anchored over the lantern/desk in the lower-right, but clamped so the
+     full bubble always stays on-screen on any device, portrait or landscape. */
   .lantern-bubble {
     position: absolute;
-    bottom: 128%;
-    left: 50%;
-    transform: translate(-50%, 10px);
+    bottom: 42%;
+    right: clamp(12px, 8vw, 150px);
+    left: auto;
     width: max-content;
-    max-width: min(62vw, 340px);
+    max-width: min(78vw, 340px);
+    transform: translateY(10px);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.5s ease, transform 0.5s ease;
     z-index: 80;
   }
-  .lantern-bubble.show { opacity: 1; transform: translate(-50%, 0); }
+  .lantern-bubble.show { opacity: 1; transform: translateY(0); }
   .lb-inner {
     background: linear-gradient(180deg, rgba(34,22,9,0.97), rgba(20,12,5,0.97));
     border: 1px solid rgba(214,164,72,0.5);
@@ -404,9 +412,9 @@
   }
   .lb-tail {
     position: absolute;
-    left: 50%; bottom: -7px;
+    right: 18%; left: auto; bottom: -7px;
     width: 14px; height: 14px;
-    transform: translateX(-50%) rotate(45deg);
+    transform: rotate(45deg);
     background: rgba(20,12,5,0.97);
     border-right: 1px solid rgba(214,164,72,0.5);
     border-bottom: 1px solid rgba(214,164,72,0.5);
@@ -420,6 +428,15 @@
     z-index: 14;
     pointer-events: none;
     background: linear-gradient(90deg, rgba(255,196,96,0.12) 0%, rgba(255,196,96,0) 100%);
+    animation: turn-hint 3.6s ease-in-out infinite;
+  }
+  .turn-hint-right {
+    position: fixed;
+    right: 0; top: 0; bottom: 0;
+    width: 16%;
+    z-index: 14;
+    pointer-events: none;
+    background: linear-gradient(270deg, rgba(255,196,96,0.12) 0%, rgba(255,196,96,0) 100%);
     animation: turn-hint 3.6s ease-in-out infinite;
   }
   @keyframes turn-hint { 0%,100% { opacity: 0.2; } 50% { opacity: 0.7; } }
@@ -467,12 +484,17 @@
     50%     { opacity: 1; }
   }
 
-  /* ── LEFT WALL SCENE ─────────────────────────────────────────── */
+  /* ── LEFT WALL SCENE ─────────────────────────────────────────────
+     The turned view re-uses the SAME room cube as the front pad: the
+     back wall is a framed centerpiece (inset 14% / 23% floor) flanked
+     by the angled side walls + floor. The game-room entrance lives
+     inside that back-wall frame (.lw-stage) so it sits "further away"
+     and the room reads at identical proportions to the main pad. ── */
   .leftwall {
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: #050302;
+    background: #0b0907;
     overflow: hidden;
     animation: lw-turn-in 0.6s cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -480,6 +502,35 @@
     from { opacity: 0; transform: perspective(1400px) rotateY(22deg); }
     to   { opacity: 1; transform: perspective(1400px) rotateY(0deg); }
   }
+
+  /* Back-wall frame holding the entrance — matches .surface.back exactly. */
+  .lw-stage {
+    position: absolute;
+    top: 0; bottom: 23%;
+    left: 14%; right: 14%;
+    overflow: hidden;
+    z-index: 4;
+    background: #100b07;
+    box-shadow:
+      inset 0 0 100px rgba(0,0,0,0.6),
+      inset 0 -8px 18px rgba(0,0,0,0.5),
+      0 0 30px rgba(0,0,0,0.5);
+  }
+  /* warm spill from the stairwell onto the floor below the doorway */
+  .lw-floor-pool {
+    position: absolute;
+    left: 50%; bottom: 23%;
+    transform: translate(-50%, 35%);
+    width: 40%; height: 22%;
+    z-index: 3;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 50% 0%,
+      rgba(255,150,50,0.26) 0%, rgba(200,90,30,0.08) 45%, transparent 75%);
+    opacity: 0;
+    transition: opacity 1.2s ease;
+  }
+  .lw-floor-pool.lit { opacity: 1; }
+
   .lw-behind { position: absolute; inset: 0; z-index: 1; }
 
   .lw-bolt {
@@ -521,10 +572,10 @@
 
   .lw-painting {
     position: absolute;
-    right: 7%;
+    right: 8%;
     top: 50%;
-    width: clamp(150px, 19vw, 280px);
-    aspect-ratio: 9 / 16;
+    width: clamp(150px, 33%, 320px);
+    aspect-ratio: 1 / 1;
     transform: translateY(-50%) perspective(1200px) rotateY(-19deg);
     transform-origin: right center;
     cursor: pointer;
@@ -533,7 +584,7 @@
   .lw-painting img {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
-    object-fit: cover; display: block;
+    object-fit: cover; object-position: center; display: block;
     border-radius: 2px;
     filter: brightness(0.96) saturate(1.06);
     box-shadow: -10px 14px 40px rgba(0,0,0,0.8);
@@ -569,19 +620,641 @@
   .lw-painting.jiggling { animation: lw-painting-jiggle 0.74s ease-out; }
 
   .crackfx {
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 6;
     pointer-events: none;
   }
   .stair-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 
+  /* ── UNZIP CRACK — a seam of light that opens from the top down, widening
+     and shifting colour, then bursts. Only shown during the 'unzip' state. ── */
+  .lw-unzip {
+    position: absolute; inset: 0; z-index: 6; pointer-events: none;
+  }
+  .lw-unzip-core {
+    position: absolute; top: 0; left: 50%;
+    width: 6px; height: 100%;
+    transform: translateX(-50%);
+    border-radius: 5px;
+    background: linear-gradient(180deg,
+      #ffffff 0%, #fff3cf 28%, #ffd27a 58%, #fff7e6 100%);
+    filter: drop-shadow(0 0 12px rgba(255,210,120,0.9));
+    clip-path: inset(0 0 100% 0);          /* nothing revealed yet (starts at top) */
+    animation: lw-unzip-run 2.4s cubic-bezier(0.66, 0, 0.4, 1) forwards;
+  }
+  @keyframes lw-unzip-run {
+    0%   { clip-path: inset(0 0 100% 0); width: 4px;
+           filter: hue-rotate(0deg) drop-shadow(0 0 8px rgba(255,225,150,0.85)); }
+    12%  { clip-path: inset(0 0 86% 0);  width: 6px; }
+    55%  { clip-path: inset(0 0 26% 0);  width: 16px;
+           filter: hue-rotate(-10deg) drop-shadow(0 0 20px rgba(255,190,120,0.9)); }
+    78%  { clip-path: inset(0 0 0% 0);   width: 40px;
+           filter: hue-rotate(60deg) drop-shadow(0 0 34px rgba(255,170,130,0.95)); opacity: 1; }
+    100% { clip-path: inset(0 0 0% 0);   width: 150px;
+           filter: hue-rotate(240deg) drop-shadow(0 0 70px rgba(200,160,255,0.9)); opacity: 0; }
+  }
+  .lw-unzip-burst {
+    position: absolute; top: 50%; left: 50%;
+    width: 40%; height: 80%;
+    transform: translate(-50%, -50%) scale(0.2);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,240,210,0.9) 0%, rgba(255,180,90,0.35) 40%, transparent 70%);
+    opacity: 0;
+    animation: lw-burst-run 2.4s ease-out forwards;
+  }
+  @keyframes lw-burst-run {
+    0%, 55% { opacity: 0; transform: translate(-50%,-50%) scale(0.2); }
+    72%     { opacity: 0.85; transform: translate(-50%,-50%) scale(0.7); }
+    100%    { opacity: 0; transform: translate(-50%,-50%) scale(1.5); }
+  }
+
+  /* ── EXPLOSION — clouds the entire screen as the crack bursts, then hands
+     off to the spiral video. Full-bleed over the left-wall view. ── */
+  .lw-explode {
+    position: absolute; inset: 0; z-index: 8; pointer-events: none;
+    opacity: 0;
+    animation: lw-explode-run 2.4s ease-out forwards;
+  }
+  @keyframes lw-explode-run {
+    0%, 58% { opacity: 0;
+      background: radial-gradient(circle at 50% 48%, rgba(255,245,220,0) 0%, transparent 10%); }
+    70% { opacity: 1;
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,248,0.97) 0%, rgba(255,205,125,0.85) 20%, rgba(255,120,60,0.45) 42%, transparent 66%); }
+    85% { opacity: 1;
+      background: radial-gradient(circle at 50% 50%, rgba(236,205,255,0.92) 0%, rgba(180,120,255,0.72) 32%, rgba(80,60,160,0.55) 58%, rgba(18,14,28,0.7) 82%); }
+    100% { opacity: 1;
+      background: radial-gradient(circle at 50% 50%, rgba(38,28,46,0.9) 0%, rgba(18,14,26,0.95) 58%, rgba(6,5,9,0.98) 100%); }
+  }
+
+  /* ── LEFT-WALL SPIRAL VIDEO — full-screen; fades up from the explosion cloud ── */
+  .lw-fsvideo {
+    position: fixed; inset: 0; z-index: 130;
+    background: #050304;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.8s ease;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lw-fsvideo.show { opacity: 1; }
+  .lw-fsvideo video {
+    width: 100%; height: 100%; object-fit: contain; display: block;
+  }
+  .lw-vhint {
+    position: absolute; bottom: 13%; left: 50%; transform: translateX(-50%);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0.3em; text-transform: uppercase; white-space: nowrap;
+    font-size: 13px; color: rgba(248,224,160,0.9);
+    text-shadow: 0 0 12px rgba(0,0,0,0.85);
+    pointer-events: none; animation: lw-vhint-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes lw-vhint-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.95; } }
+
+  /* ── REMNANT CRACK-SCAR — the doorway after the explosion: a glowing,
+     flickering molten seam where the crack tore, with embers + smoke. ── */
+  .lw-scar {
+    position: absolute; top: 3%; bottom: 3%; left: 50%;
+    width: 14px; transform: translateX(-50%);
+    background: linear-gradient(180deg,
+        rgba(255,180,80,0) 0%,
+        rgba(255,150,60,0.7) 16%,
+        rgba(255,90,36,0.95) 50%,
+        rgba(255,150,60,0.7) 84%,
+        rgba(255,180,80,0) 100%);
+    filter: blur(2px) drop-shadow(0 0 16px rgba(255,130,46,0.85));
+    border-radius: 50%;
+    z-index: 4; pointer-events: none;
+    animation: lw-scar-flicker 1.7s ease-in-out infinite;
+  }
+  @keyframes lw-scar-flicker {
+    0%,100% { opacity: 0.58; transform: translateX(-50%) scaleX(1); }
+    30%     { opacity: 0.95; transform: translateX(-50%) scaleX(1.5); }
+    55%     { opacity: 0.48; transform: translateX(-50%) scaleX(0.7); }
+    78%     { opacity: 0.82; transform: translateX(-50%) scaleX(1.2); }
+  }
+
+  /* ── BRICK HALLWAY — long receding brick corridor reached by going
+     forward from the spiral. A small light pulses at the far end,
+     cycling through the seven chakra colours. ── */
+  .brickhall {
+    position: fixed; inset: 0; z-index: 130; background: #080605; overflow: hidden;
+    animation: lw-turn-in 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .brickhall-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .bh-light {
+    position: absolute; left: 50%; top: 41%;
+    width: 22px; height: 22px; transform: translate(-50%,-50%);
+    border-radius: 50%; pointer-events: none;
+    animation: bh-pulse 2.6s ease-in-out infinite, bh-chakra 16.8s linear infinite;
+  }
+  @keyframes bh-pulse {
+    0%,100% { transform: translate(-50%,-50%) scale(0.62); }
+    50%     { transform: translate(-50%,-50%) scale(1.3); }
+  }
+  @keyframes bh-chakra {
+    0%   { background:#ec3a3a; box-shadow:0 0 26px 9px rgba(236,58,58,0.9); }
+    14%  { background:#fb8c2a; box-shadow:0 0 26px 9px rgba(251,140,42,0.9); }
+    28%  { background:#fdd835; box-shadow:0 0 26px 9px rgba(253,216,53,0.9); }
+    43%  { background:#46b04a; box-shadow:0 0 26px 9px rgba(70,176,74,0.9); }
+    57%  { background:#2a90e8; box-shadow:0 0 26px 9px rgba(42,144,232,0.9); }
+    71%  { background:#3f4ec0; box-shadow:0 0 26px 9px rgba(63,78,192,0.9); }
+    85%  { background:#9a30c0; box-shadow:0 0 26px 9px rgba(154,48,192,0.9); }
+    100% { background:#ec3a3a; box-shadow:0 0 26px 9px rgba(236,58,58,0.9); }
+  }
+  .bh-light-halo {
+    position: absolute; left: 50%; top: 41%;
+    width: 120px; height: 120px; transform: translate(-50%,-50%);
+    border-radius: 50%; pointer-events: none; opacity: 0.5;
+    background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 68%);
+    animation: bh-pulse 2.6s ease-in-out infinite;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     RIGHT WALL — arched hallway entrance. Same room cube as the front
+     pad (side walls + floor + back-wall frame); the hallway recedes
+     inside the back-wall frame so it reads "further away".
+     ═══════════════════════════════════════════════════════════════════ */
+  .rightwall {
+    position: fixed; inset: 0; z-index: 100;
+    background: #0b0907; overflow: hidden;
+    animation: rw-turn-in 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes rw-turn-in {
+    from { opacity: 0; transform: perspective(1400px) rotateY(-22deg); }
+    to   { opacity: 1; transform: perspective(1400px) rotateY(0deg); }
+  }
+  /* Back-wall frame — matches .surface.back exactly */
+  .rw-stage {
+    position: absolute; top: 0; bottom: 23%; left: 14%; right: 14%;
+    overflow: hidden; z-index: 4;
+    background: linear-gradient(180deg,#2e2218 0%,#281c12 45%,#1f160d 80%,#18110a 100%);
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.55), inset 0 -8px 18px rgba(0,0,0,0.45);
+  }
+  .rw-stage::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg,
+      rgba(255,255,255,0) 0px, rgba(255,255,255,0) 110px,
+      rgba(255,210,150,0.045) 110px, rgba(255,210,150,0.045) 111px);
+  }
+  /* stone arch surround (outer) */
+  .rw-arch-frame {
+    position: absolute; left: 22%; right: 22%; top: 13%; bottom: 0;
+    border-radius: 50% 50% 0 0 / 44% 44% 0 0;
+    background: linear-gradient(135deg, #7a5a28 0%, #3a2810 46%, #6a4c1f 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(214,164,72,0.5),
+      inset 0 0 26px rgba(0,0,0,0.5),
+      0 0 30px rgba(232,168,60,0.16);
+    z-index: 2;
+  }
+  /* the dark opening, inset so the frame reads as a ring */
+  .rw-arch {
+    position: absolute; left: 25%; right: 25%; top: 15.5%; bottom: 0;
+    border-radius: 50% 50% 0 0 / 42% 42% 0 0;
+    overflow: hidden; background: #06040a;
+    box-shadow: inset 0 0 50px rgba(0,0,0,0.95);
+    z-index: 3;
+  }
+  .hall-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* keystone at the crown of the arch */
+  .rw-keystone {
+    position: absolute; left: 50%; top: calc(13% - 10px);
+    transform: translateX(-50%);
+    width: 9%; height: 8%;
+    background: linear-gradient(180deg,#8a6630,#4a3416);
+    border-radius: 3px 3px 0 0;
+    box-shadow: inset 0 0 0 1px rgba(214,164,72,0.45), 0 2px 6px rgba(0,0,0,0.5);
+    z-index: 4;
+  }
+  /* warm light spilling from the hallway onto the floor */
+  .rw-floor-pool {
+    position: absolute; left: 50%; bottom: 23%;
+    transform: translate(-50%, 40%);
+    width: 32%; height: 22%; z-index: 3; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 0%,
+      rgba(255,150,50,0.28) 0%, rgba(200,90,30,0.08) 45%, transparent 75%);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     KITCHEN — the room beyond the hallway, at the same cube perspective.
+     ═══════════════════════════════════════════════════════════════════ */
+  .kitchen {
+    position: fixed; inset: 0; z-index: 100;
+    background: #0c0a07; overflow: hidden;
+    animation: kit-in 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes kit-in {
+    from { opacity: 0; transform: perspective(1500px) scale(1.12); }
+    to   { opacity: 1; transform: none; }
+  }
+  /* back wall — matches .surface.back */
+  .kit-back {
+    position: absolute; top: 0; bottom: 23%; left: 14%; right: 14%;
+    background: linear-gradient(180deg,#2a2118 0%,#241b12 50%,#1c140c 100%);
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.5), inset 0 -8px 18px rgba(0,0,0,0.45);
+    z-index: 3; overflow: hidden;
+  }
+  .kit-back::before { /* faint tile grout */
+    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.4;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 40px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 40px);
+  }
+  /* range hood */
+  .kit-hood {
+    position: absolute; left: 50%; top: 33%; transform: translateX(-50%);
+    width: 32%; height: 15%;
+    background: linear-gradient(180deg,#3a2c16 0%,#241803 100%);
+    clip-path: polygon(16% 0, 84% 0, 100% 100%, 0 100%);
+    box-shadow: inset 0 1px 0 rgba(232,180,100,0.22);
+    z-index: 5;
+  }
+  .kit-hood::after {
+    content: ''; position: absolute; left: 8%; right: 8%; bottom: 0; height: 8px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,170,70,0.6), transparent 75%);
+  }
+  /* cooking niche / hearth */
+  .kit-niche {
+    position: absolute; left: 50%; bottom: 16%; transform: translateX(-50%);
+    width: 27%; height: 36%;
+    background: radial-gradient(ellipse 72% 72% at 50% 82%,
+      rgba(180,70,20,0.42) 0%, rgba(60,24,8,0.7) 50%, rgba(8,4,2,1) 86%);
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 2px rgba(120,86,40,0.5), inset 0 0 44px rgba(0,0,0,0.85);
+    overflow: hidden; z-index: 4;
+  }
+  .kit-niche-glow {
+    position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: 78%; height: 52%;
+    background: radial-gradient(ellipse at 50% 100%, rgba(255,150,50,0.65), transparent 72%);
+    animation: hearth-flicker 3s ease-in-out infinite;
+  }
+  .kit-pot {
+    position: absolute; left: 50%; bottom: 16%; transform: translateX(-50%);
+    width: 44%; height: 22%;
+    background: linear-gradient(180deg,#2c2c30,#0e0e10);
+    border-radius: 0 0 42% 42%;
+    box-shadow: inset 0 2px 0 rgba(200,200,210,0.18);
+  }
+  .kit-pot::before {
+    content: ''; position: absolute; left: -7%; right: -7%; top: -7px; height: 9px;
+    background: linear-gradient(180deg,#3a3a40,#1a1a1e); border-radius: 4px;
+  }
+  .kit-pot::after { /* lid knob */
+    content: ''; position: absolute; left: 50%; top: -13px; transform: translateX(-50%);
+    width: 8px; height: 7px; background: #2a2a2e; border-radius: 3px;
+  }
+  /* upper cabinets flanking the hood */
+  .kit-cab {
+    position: absolute; top: 5%; width: 17%; height: 28%;
+    background: linear-gradient(180deg,#34250f,#221608);
+    box-shadow: inset 0 0 0 1px rgba(120,86,40,0.4), 0 5px 12px rgba(0,0,0,0.55);
+    display: flex; gap: 5px; padding: 6px; z-index: 4;
+  }
+  .kit-cab-l { left: 3%; }
+  .kit-cab-r { right: 3%; }
+  .kit-door {
+    flex: 1; position: relative;
+    background: linear-gradient(180deg,#3c2a12,#261806);
+    border: 1px solid rgba(120,86,40,0.4); border-radius: 2px;
+    box-shadow: inset 0 0 14px rgba(0,0,0,0.45);
+  }
+  .kit-knob {
+    position: absolute; top: 50%; width: 5px; height: 5px; border-radius: 50%;
+    background: #c9a14c; box-shadow: 0 0 4px rgba(0,0,0,0.6); transform: translateY(-50%);
+  }
+  .kit-cab-l .kit-door:first-child .kit-knob { right: 4px; }
+  .kit-cab-l .kit-door:last-child  .kit-knob { left: 4px; }
+  .kit-cab-r .kit-door:first-child .kit-knob { right: 4px; }
+  .kit-cab-r .kit-door:last-child  .kit-knob { left: 4px; }
+  /* open shelf with jars (left) */
+  .kit-shelf {
+    position: absolute; left: 3%; top: 36%; width: 17%; height: 16%;
+    z-index: 4; display: flex; align-items: flex-end; justify-content: space-around;
+    padding: 0 4px 4px;
+    border-bottom: 4px solid #3a2810;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+  }
+  .kit-jar {
+    width: 22%; border-radius: 2px 2px 4px 4px;
+    background: linear-gradient(180deg, rgba(232,168,80,0.32), rgba(150,90,30,0.5));
+    box-shadow: inset 0 1px 0 rgba(255,220,150,0.4), inset 0 0 8px rgba(0,0,0,0.4);
+  }
+  .kit-jar.j1 { height: 70%; }
+  .kit-jar.j2 { height: 92%; }
+  .kit-jar.j3 { height: 60%; }
+  /* hanging pans (right) */
+  .kit-pans {
+    position: absolute; right: 3%; top: 36%; width: 17%; height: 18%;
+    z-index: 4; display: flex; gap: 14%; align-items: flex-start; justify-content: center;
+  }
+  .kit-pan {
+    width: 30%; aspect-ratio: 1; border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #8a6a3a, #3a2810 70%);
+    box-shadow: inset 0 0 0 2px rgba(180,140,70,0.4), 0 3px 6px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .kit-pan::after { /* handle up to rail */
+    content: ''; position: absolute; left: 50%; bottom: 100%; width: 2px; height: 16px;
+    transform: translateX(-50%); background: rgba(160,120,60,0.6);
+  }
+  .kit-pan.p2 { width: 24%; }
+  /* counter standing on the floor */
+  .kit-counter { position: absolute; left: 23%; right: 23%; bottom: 16%; z-index: 6; }
+  .kit-counter-top {
+    height: 14px; background: linear-gradient(180deg,#6a4a22,#3e2a12);
+    border-radius: 3px 3px 0 0;
+    box-shadow: 0 -1px 0 rgba(232,180,100,0.28), 0 12px 24px rgba(0,0,0,0.6);
+  }
+  .kit-counter-front {
+    height: 62px; background: linear-gradient(180deg,#2e2010,#1a1206);
+    display: flex; gap: 8px; padding: 8px;
+    box-shadow: inset 0 1px 0 rgba(232,180,100,0.1);
+  }
+  .kit-drawer {
+    flex: 1; position: relative;
+    border: 1px solid rgba(90,64,28,0.45); border-radius: 2px;
+  }
+  .kit-drawer::after {
+    content: ''; position: absolute; left: 50%; top: 50%; width: 16px; height: 3px;
+    transform: translate(-50%,-50%); background: rgba(180,140,60,0.5); border-radius: 2px;
+  }
+  /* a few props on the counter */
+  .kit-props {
+    position: absolute; left: 0; right: 0; bottom: 100%; height: 0; z-index: 1;
+  }
+  .kit-board {
+    position: absolute; left: 16%; bottom: 0; width: 84px; height: 12px;
+    background: linear-gradient(180deg,#5a3f1e,#3a2810); border-radius: 3px;
+    box-shadow: 0 3px 5px rgba(0,0,0,0.5);
+  }
+  .kit-bottle {
+    position: absolute; right: 18%; bottom: 0; width: 14px; height: 46px;
+    background: linear-gradient(180deg, rgba(120,160,120,0.45), rgba(40,70,45,0.7));
+    border-radius: 6px 6px 3px 3px;
+    box-shadow: inset 0 2px 0 rgba(220,255,220,0.25);
+  }
+  .kit-bottle::before {
+    content: ''; position: absolute; left: 50%; top: -8px; transform: translateX(-50%);
+    width: 5px; height: 9px; background: rgba(40,70,45,0.8); border-radius: 2px;
+  }
+  /* pendant lamp */
+  .kit-pendant {
+    position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+    z-index: 7; display: flex; flex-direction: column; align-items: center;
+    pointer-events: none;
+  }
+  .kit-pendant-cord {
+    width: 2px; height: 13vh;
+    background: linear-gradient(180deg, rgba(180,150,90,0.6), rgba(120,90,50,0.4));
+  }
+  .kit-pendant-shade {
+    width: 56px; height: 30px;
+    background: linear-gradient(180deg,#4a3418,#2a1c0a);
+    border-radius: 8px 8px 38% 38%;
+    box-shadow: inset 0 -3px 8px rgba(255,180,80,0.55), 0 4px 10px rgba(0,0,0,0.5);
+  }
+  .kit-pendant-glow {
+    position: absolute; left: 50%; top: 13vh; transform: translateX(-50%);
+    width: 46vh; height: 64vh;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,180,80,0.22), transparent 62%);
+    mix-blend-mode: screen; pointer-events: none;
+  }
+  .kit-caption {
+    position: absolute; left: 50%; bottom: 4%; transform: translateX(-50%);
+    z-index: 12;
+    font-family: 'Cormorant Garamond', serif; font-style: italic;
+    font-size: clamp(11px, 1.4vw, 14px); letter-spacing: 0.04em;
+    color: rgba(220,180,120,0.55); text-shadow: 0 0 12px rgba(0,0,0,0.95);
+    pointer-events: none;
+  }
+
+  /* ── KITCHEN FIXTURES: pantry door (L), fridge (R), sink + crystal ── */
+  .kit-pantry, .kit-fridge {
+    position: absolute; bottom: 16%; z-index: 6; cursor: pointer;
+  }
+  .kit-pantry { left: 3%;  width: 17%; height: 50%; }
+  .kit-fridge { right: 3%; width: 17%; height: 54%; }
+
+  /* pantry: a tall wooden door */
+  .kit-pantry-door {
+    position: absolute; inset: 0; border-radius: 3px 3px 0 0;
+    background: linear-gradient(180deg,#3a2814 0%,#241608 100%);
+    box-shadow: inset 0 0 0 3px rgba(90,60,28,0.6), inset 0 0 30px rgba(0,0,0,0.6), 0 6px 16px rgba(0,0,0,0.55);
+  }
+  .kit-pantry-door::before, .kit-pantry-door::after {
+    content: ''; position: absolute; left: 18%; right: 18%;
+    border: 2px solid rgba(90,60,28,0.45); border-radius: 3px;
+  }
+  .kit-pantry-door::before { top: 6%; height: 40%; }
+  .kit-pantry-door::after  { top: 52%; height: 40%; }
+  .kit-pantry-knob {
+    position: absolute; right: 12%; top: 50%; transform: translateY(-50%);
+    width: 9px; height: 9px; border-radius: 50%; background: #c9a14c;
+    box-shadow: 0 0 5px rgba(0,0,0,0.6); z-index: 2;
+  }
+  .kit-pantry-label, .kit-fridge-label {
+    position: absolute; left: 50%; top: -22px; transform: translateX(-50%);
+    font-family: 'JetBrains Mono', monospace; font-size: 8px;
+    letter-spacing: 0.26em; text-transform: uppercase;
+    color: rgba(220,185,120,0.55); white-space: nowrap;
+    opacity: 0; transition: opacity 0.25s ease; pointer-events: none;
+  }
+  .kit-pantry:hover .kit-pantry-label, .kit-fridge:hover .kit-fridge-label { opacity: 1; }
+
+  /* fridge: body + two doors that swing open */
+  .kit-fridge-body {
+    position: absolute; inset: 0; border-radius: 6px;
+    background: linear-gradient(180deg,#2a2c30 0%,#16181c 100%);
+    box-shadow: inset 0 0 0 2px rgba(150,155,165,0.18), inset 0 2px 0 rgba(220,225,235,0.18), 0 8px 20px rgba(0,0,0,0.6);
+    overflow: visible;
+  }
+  /* lit interior with shelves */
+  .kit-fridge-interior {
+    position: absolute; inset: 6px; border-radius: 4px;
+    background: linear-gradient(180deg,#dfeaf2 0%,#aebccb 100%);
+    box-shadow: inset 0 0 24px rgba(120,180,220,0.5);
+    display: flex; flex-direction: column; justify-content: space-evenly;
+    padding: 8px 6px; gap: 4px; opacity: 0; transition: opacity 0.25s ease 0.2s;
+  }
+  .kit-fridge.open .kit-fridge-interior { opacity: 1; }
+  .kit-fridge-shelf {
+    display: flex; align-items: center; justify-content: space-around;
+    height: 30%; border-bottom: 2px solid rgba(120,140,160,0.5);
+  }
+  .kit-food {
+    font-size: 20px; line-height: 1; cursor: pointer; background: none; border: 0; padding: 2px;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35));
+    transition: transform 0.15s ease;
+  }
+  .kit-food:hover { transform: scale(1.22) translateY(-2px); }
+  .kit-food:active { transform: scale(0.9); }
+  .kit-food.gone { opacity: 0; pointer-events: none; transform: scale(0.4); }
+  /* fridge doors */
+  .kit-fridge-leaf {
+    position: absolute; top: 0; bottom: 0; width: 50%;
+    background: linear-gradient(180deg,#33363b 0%,#1c1e22 100%);
+    box-shadow: inset 0 0 0 2px rgba(150,155,165,0.16), inset 0 2px 0 rgba(220,225,235,0.16);
+    transition: transform 0.7s cubic-bezier(0.5,0,0.3,1); z-index: 3;
+  }
+  .kit-fridge-leaf.l { left: 0;  border-radius: 6px 0 0 6px; transform-origin: left center; }
+  .kit-fridge-leaf.r { right: 0; border-radius: 0 6px 6px 0; transform-origin: right center; }
+  .kit-fridge.open .kit-fridge-leaf.l { transform: perspective(700px) rotateY(105deg); }
+  .kit-fridge.open .kit-fridge-leaf.r { transform: perspective(700px) rotateY(-105deg); }
+  .kit-fridge.open .kit-fridge-leaf { pointer-events: none; }
+  .kit-fridge-handle {
+    position: absolute; top: 30%; height: 40%; width: 4px; border-radius: 2px;
+    background: linear-gradient(180deg,#b8bcc4,#6a6e76);
+  }
+  .kit-fridge-leaf.l .kit-fridge-handle { right: 6px; }
+  .kit-fridge-leaf.r .kit-fridge-handle { left: 6px; }
+
+  /* sink set into the counter + faucet + crystal */
+  .kit-sink {
+    position: absolute; left: 35%; top: -2px; width: 30%; height: 13px;
+    background: linear-gradient(180deg,#7a7e86,#3a3d44);
+    border-radius: 3px; cursor: pointer; z-index: 2;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.6), inset 0 -1px 0 rgba(220,225,235,0.2);
+  }
+  .kit-sink-basin {
+    position: absolute; left: 16%; right: 16%; top: 3px; bottom: 2px;
+    background: radial-gradient(ellipse at 50% 40%, #2a2d33, #14161a);
+    border-radius: 40%;
+  }
+  .kit-faucet {
+    position: absolute; left: 50%; top: -26px; transform: translateX(-50%);
+    width: 4px; height: 26px; background: linear-gradient(180deg,#c9cdd4,#7a7e86);
+    border-radius: 2px 2px 0 0;
+  }
+  .kit-faucet::before { /* spout arm */
+    content: ''; position: absolute; left: -1px; top: 0; width: 22px; height: 4px;
+    background: linear-gradient(90deg,#c9cdd4,#7a7e86); border-radius: 2px;
+  }
+  .kit-faucet::after { /* down spout */
+    content: ''; position: absolute; left: 19px; top: 2px; width: 4px; height: 8px;
+    background: #9a9ea6; border-radius: 0 0 2px 2px;
+  }
+  .kit-water {
+    position: absolute; left: calc(50% + 19px); top: -16px; width: 4px; height: 0;
+    background: linear-gradient(180deg, rgba(200,235,255,0.85), rgba(150,210,250,0.4));
+    border-radius: 2px; z-index: 3; pointer-events: none;
+    transition: height 0.2s ease;
+  }
+  .kit-water.on { height: 28px; animation: water-wobble 0.4s linear infinite; }
+  @keyframes water-wobble {
+    0%,100% { transform: translateX(0) scaleY(1); }
+    50%     { transform: translateX(0.6px) scaleY(1.04); }
+  }
+  .kit-splash {
+    position: absolute; left: calc(50% + 14px); top: 8px; width: 16px; height: 8px;
+    z-index: 3; pointer-events: none; opacity: 0;
+    background: radial-gradient(ellipse at 50% 40%, rgba(210,240,255,0.7), transparent 70%);
+    border-radius: 50%;
+  }
+  .kit-water.on ~ .kit-splash { opacity: 1; animation: splash-pulse 0.5s ease-in-out infinite; }
+  @keyframes splash-pulse { 0%,100% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.15); opacity: 0.9; } }
+
+  .kit-crystal {
+    position: absolute; left: 70%; top: -16px; width: 22px; height: 26px; z-index: 4;
+    cursor: pointer; transition: transform 0.2s ease, filter 0.4s ease;
+  }
+  .kit-crystal svg { width: 100%; height: 100%; display: block; }
+  .kit-crystal.dusty { filter: grayscale(0.5) brightness(0.7); }
+  .kit-crystal.clean { filter: brightness(1.2) drop-shadow(0 0 8px rgba(150,230,255,0.8)); }
+  .kit-crystal:hover { transform: translateY(-3px) scale(1.08); }
+  .kit-crystal.shake { animation: crys-shake 0.4s ease; }
+  @keyframes crys-shake {
+    0%,100% { transform: translateX(0); } 25% { transform: translateX(-3px) rotate(-6deg); }
+    75% { transform: translateX(3px) rotate(6deg); }
+  }
+  .kit-crystal.gone { opacity: 0; transform: scale(0.3) translateY(-12px); pointer-events: none; }
+
+  /* PANTRY interior overlay */
+  .pantry-overlay {
+    position: fixed; inset: 0; z-index: 220; overflow: hidden;
+    background: #0c0a07;
+    animation: kit-in 0.55s cubic-bezier(0.22,1,0.36,1);
+  }
+  .pantry-back {
+    position: absolute; top: 0; bottom: 20%; left: 10%; right: 10%;
+    background: linear-gradient(180deg,#241a10 0%,#1a120a 100%);
+    box-shadow: inset 0 0 90px rgba(0,0,0,0.6);
+    display: flex; flex-direction: column; justify-content: space-evenly; padding: 4% 6%;
+  }
+  .pantry-shelf {
+    display: flex; align-items: flex-end; justify-content: space-around;
+    height: 22%; border-bottom: 7px solid #3a2810;
+    box-shadow: 0 6px 8px rgba(0,0,0,0.5);
+  }
+  .pantry-item {
+    font-size: 30px; line-height: 1; background: none; border: 0; cursor: pointer; padding: 3px;
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,0.5));
+    transition: transform 0.15s ease;
+  }
+  .pantry-item:hover { transform: scale(1.18) translateY(-3px); }
+  .pantry-item:active { transform: scale(0.9); }
+  .pantry-item.gone { opacity: 0; pointer-events: none; transform: scale(0.4); }
+  .pantry-glow {
+    position: absolute; left: 50%; top: 0; transform: translateX(-50%);
+    width: 50vh; height: 60vh; pointer-events: none; mix-blend-mode: screen;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,180,80,0.2), transparent 62%);
+  }
+  .pantry-floor {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 20%;
+    background: linear-gradient(180deg,#140f08,#08060a);
+  }
+  .pantry-title {
+    position: absolute; left: 50%; top: 5%; transform: translateX(-50%); z-index: 3;
+    font-family: 'Cormorant Garamond', serif; font-style: italic;
+    font-size: clamp(14px,2vw,20px); color: rgba(248,224,168,0.9);
+    text-shadow: 0 0 12px rgba(0,0,0,0.9);
+  }
+  .pantry-back-btn {
+    position: absolute; left: 50%; bottom: 7%; transform: translateX(-50%); z-index: 4;
+    display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 20px;
+    border-radius: 20px; border: 1px solid rgba(200,165,100,0.4);
+    background: rgba(20,14,8,0.7); color: rgba(232,200,140,0.85);
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.24em;
+    text-transform: uppercase; cursor: pointer; transition: all 0.25s ease;
+  }
+  .pantry-back-btn:hover { border-color: rgba(232,168,60,0.7); color: #f8d089; }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     BACK WALL — the fourth wall (behind you when you face the fireplace).
+     A plain panelled wall; same cube perspective as every other facing.
+     ═══════════════════════════════════════════════════════════════════ */
+  .backwall {
+    position: fixed; inset: 0; z-index: 100;
+    background: #0b0907; overflow: hidden;
+    animation: bw-turn-in 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes bw-turn-in {
+    from { opacity: 0; transform: perspective(1500px) scale(1.04); }
+    to   { opacity: 1; transform: none; }
+  }
+  .bw-stage {
+    position: absolute; top: 0; bottom: 23%; left: 14%; right: 14%;
+    overflow: hidden; z-index: 4;
+    background: linear-gradient(180deg,#2e2218 0%,#281c12 45%,#1f160d 80%,#18110a 100%);
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.55), inset 0 -8px 18px rgba(0,0,0,0.45);
+  }
+  .bw-stage::before { /* faint vertical panelling, matches the front back wall */
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg,
+      rgba(255,255,255,0) 0px, rgba(255,255,255,0) 110px,
+      rgba(255,210,150,0.045) 110px, rgba(255,210,150,0.045) 111px);
+  }
+  .bw-stage::after { /* soft aged wash so it isn't dead-flat */
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 70% 60% at 50% 42%,
+      rgba(255,200,130,0.06) 0%, transparent 70%);
+  }
+
   /* ── TV ─ Cattycorner in the LEFT back corner. Smaller, rotated
             harder so it reads as "in the corner". */
   .tv {
     position: absolute;
     left: 2%;
-    bottom: 32%;
+    bottom: 25%;
     width: 22%;
     aspect-ratio: 16/10;
     z-index: 5;
@@ -625,15 +1298,43 @@
     0%, 100% { opacity: 0.65; }
     50% { opacity: 1; }
   }
+  /* TV console + legs — a real stand that balances the desk's legs
+     in the opposite corner. Hangs below the TV on the same rotated plane. */
   .tv-stand {
     position: absolute;
     left: 50%; top: 100%;
     transform: translateX(-50%);
-    width: 24%; height: 10%;
-    background: linear-gradient(180deg, #1a1208 0%, #0a0604 100%);
-    border-radius: 0 0 4px 4px;
+    width: 78%;
     z-index: -2;
+    pointer-events: none;
   }
+  .tv-console {
+    position: relative;
+    width: 100%;
+    height: 16px;
+    background: linear-gradient(180deg, #3a2614 0%, #261806 100%);
+    border-radius: 3px 3px 1px 1px;
+    box-shadow:
+      0 -1px 0 rgba(232, 180, 100, 0.26),
+      inset 0 1px 0 rgba(255, 210, 150, 0.14),
+      0 12px 24px rgba(0,0,0,0.7);
+  }
+  .tv-legs {
+    position: relative;
+    width: 100%;
+    height: 52px;
+    pointer-events: none;
+  }
+  .tv-leg {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 7px;
+    background: linear-gradient(90deg, #4a3014 0%, #221406 60%, #100a04 100%);
+    border-radius: 0 0 2px 2px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  }
+  .tv-leg.l1 { left: 6%; }
+  .tv-leg.l2 { right: 6%; }
   /* feathered edge mask — eats the white frame around keyed video */
   .tv-edge-mask {
     position: absolute;
@@ -651,7 +1352,7 @@
   .desk {
     position: absolute;
     right: 2%;
-    bottom: 26%;
+    bottom: 19%;
     width: 24%;
     z-index: 6;
     transform: perspective(900px) rotateY(-22deg);
@@ -817,7 +1518,7 @@
   .articulate {
     position: absolute;
     left: 14%; right: 14%;
-    bottom: 30%;
+    bottom: 23%;
     height: 22px;
     z-index: 3;
     pointer-events: none;
@@ -1067,10 +1768,21 @@
   /* Same cattycorner layout — just scaled. No stacking. */
   @media (orientation: portrait) {
     .surface.back  { left: 6%; right: 6%; bottom: 32%; }
+    .back-wall-video { left: 6%; right: 6%; bottom: 32%; }
     .surface.left  { width: 6%; }
     .surface.right { width: 6%; }
     .surface.floor { height: 32%; }
     .floor-seam    { bottom: 32%; }
+
+    /* Turn-view entrance frame tracks the portrait back wall */
+    .lw-stage { left: 6%; right: 6%; bottom: 32%; }
+    .lw-floor-pool { bottom: 32%; }
+    .rw-stage { left: 6%; right: 6%; bottom: 32%; }
+    .rw-floor-pool { bottom: 32%; }
+    .bw-stage { left: 6%; right: 6%; bottom: 32%; }
+    .bw-floor-pool { bottom: 32%; }
+    .kit-back { left: 6%; right: 6%; bottom: 32%; }
+    .kit-counter { left: 3%; right: 3%; bottom: 24%; }
 
     /* TV — corner-left, smaller */
     .tv {
@@ -1094,6 +1806,9 @@
     .lantern-spot { left: 8%; }
     .key-spot     { left: 22%; }
 
+    /* Lantern speech bubble sits higher to clear the portrait desk */
+    .lantern-bubble { bottom: 50%; right: 6vw; max-width: min(84vw, 320px); }
+
     /* Fireplace fills the central gap on back wall */
     .fireplace {
       width: 32%;
@@ -1103,8 +1818,8 @@
 
     /* Mantel screen above fireplace */
     .mantel-screen {
-      width: 28%;
-      bottom: calc(32% + 22% + 2%);
+      width: 53%;
+      bottom: calc(32% + 22% + 13%);   /* raised ~20% higher */
     }
 
     .articulate { bottom: 32%; }
@@ -1120,7 +1835,8 @@
     position: fixed;
     right: 8vw;
     bottom: -492px;
-    z-index: 90;
+    /* above the game/quest overlay (z 150) so the phone travels with you everywhere */
+    z-index: 250;
     width: 260px;
     height: 540px;
     /* lowered tab: scaleX narrows the peek without changing height */
@@ -1139,8 +1855,8 @@
   .obs-phone.raised {
     right: 12px;
     bottom: 12px;
-    /* bumped up slightly from 0.44 */
-    transform: rotate(8deg) scale(0.49);
+    /* desktop default — sized so app labels stay readable */
+    transform: rotate(8deg) scale(0.72);
     cursor: default;
     filter: drop-shadow(0 20px 40px rgba(0,0,0,0.7));
   }
@@ -1233,6 +1949,17 @@
     background: #1c1c20;
     border-radius: 3px;
     z-index: 4;
+  }
+
+  /* Invisible double-tap target across the phone's top edge */
+  .ph-top-edge {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    z-index: 5;
+    cursor: pointer;
+    background: transparent;
+    touch-action: manipulation;
   }
 
   .ph-screen {
@@ -1352,14 +2079,15 @@
   .ph-app-label {
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.04em;
     color: #e8dfc8;
     text-transform: uppercase;
     width: 100%;
     text-align: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.2;
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: normal;
   }
   .ph-app-icon {
     position: relative;
@@ -1414,6 +2142,7 @@
   .ph-app-view {
     position: relative;
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     background:
@@ -1424,10 +2153,21 @@
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px 10px 16px;
+    justify-content: flex-start;
+    gap: 9px;
+    padding: 11px 12px 9px 12px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
   }
+  .ph-header-icon {
+    width: 28px; height: 28px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; line-height: 1;
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .ph-header-icon svg { width: 18px; height: 18px; }
   /* Circled X close button */
   .ph-close-x {
     background: none;
@@ -1454,17 +2194,24 @@
   .ph-back-ghost { visibility: hidden; }
   .ph-title {
     flex: 1;
-    text-align: center;
-    font-size: 11px;
-    letter-spacing: 0.32em;
-    text-transform: uppercase;
-    color: #d8cdb4;
+    min-width: 0;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    color: #ece1c6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* ── APP NAV BUTTONS (intermediate button layer) ──────────────── */
   .ph-nav-list {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 10px 12px 16px 12px;
     display: flex;
     flex-direction: column;
@@ -1505,21 +2252,23 @@
   .ph-nav-btn-label {
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     color: #f0e8d0;
     text-transform: uppercase;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.25;
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: normal;
   }
   .ph-nav-btn-sub {
     font-size: 9px;
-    letter-spacing: 0.08em;
-    color: #7a7265;
+    letter-spacing: 0.05em;
+    color: #8a8275;
     margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.3;
+    overflow-wrap: normal;
+    word-break: normal;
+    white-space: normal;
   }
   .ph-nav-btn-arrow {
     color: #5a5448;
@@ -1623,7 +2372,9 @@
   /* Messages */
   .msg-list {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 8px 12px 14px 12px;
     display: flex;
     flex-direction: column;
@@ -1710,7 +2461,7 @@
   .fl-overlay {
     position: fixed; inset: 0;
     pointer-events: none;
-    z-index: 60;
+    z-index: 240;
     mix-blend-mode: multiply;
   }
   .fl-beam {
@@ -1718,7 +2469,7 @@
     width: 420px; height: 420px;
     margin-left: -210px; margin-top: -210px;
     pointer-events: none;
-    z-index: 61;
+    z-index: 241;
     background: radial-gradient(circle, rgba(255,230,170,0.28) 0%, rgba(255,210,130,0.14) 22%, rgba(255,185,90,0.04) 50%, rgba(0,0,0,0) 72%);
     mix-blend-mode: screen;
     border-radius: 50%;
@@ -1726,7 +2477,7 @@
   .ch-wash {
     position: fixed; inset: 0;
     pointer-events: none;
-    z-index: 55;
+    z-index: 239;
     transition: opacity 0.6s ease, background 0.6s ease;
     mix-blend-mode: multiply;
   }
@@ -1773,6 +2524,230 @@
     .ph-greeting-l1 { font-size: 22px; }
     .ph-app-icon { width: 54px; height: 54px; }
   }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     DIMENSION ROOM — forward (▲) from the final landing. Same cube as the
+     front pad, but spacious and EMPTY; the back wall (where the fireplace
+     used to be) holds three yin-yang doors. Inert for now.
+     SIDE ROOM — a landing's ▶ placeholder, same shell.
+     ═══════════════════════════════════════════════════════════════════ */
+  .dimroom, .sideroom {
+    position: fixed; inset: 0; z-index: 100;
+    background: #0b0907; overflow: hidden;
+    animation: bw-turn-in 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .dim-back, .side-back {
+    position: absolute; top: 0; bottom: 23%; left: 14%; right: 14%;
+    overflow: hidden; z-index: 4;
+    background: linear-gradient(180deg,#1f1813 0%,#171009 52%,#100b06 100%);
+    box-shadow: inset 0 0 120px rgba(0,0,0,0.68), inset 0 -8px 18px rgba(0,0,0,0.5);
+  }
+  .dim-back::before {            /* faint panelling so the emptiness still has texture */
+    content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.7;
+    background: repeating-linear-gradient(90deg,
+      rgba(255,255,255,0) 0px, rgba(255,255,255,0) 132px,
+      rgba(255,210,150,0.035) 132px, rgba(255,210,150,0.035) 133px);
+  }
+  .dim-back::after {             /* soft overhead wash — keeps the room reading as airy */
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 64% 56% at 50% 38%, rgba(255,200,130,0.07) 0%, transparent 72%);
+  }
+  .dim-doors {
+    position: absolute; left: 7%; right: 7%; top: 51%;
+    transform: translateY(-50%);
+    display: flex; align-items: center; justify-content: space-between; gap: 5%;
+    z-index: 2;
+  }
+  .dim-door {
+    position: relative; flex: 1 1 0; max-width: 26%;
+    aspect-ratio: 1 / 2.15;
+    border: none; border-radius: 5px 5px 2px 2px; padding: 0;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s ease, filter 0.3s ease;
+  }
+  .dim-door:hover  { transform: translateY(-4px); filter: brightness(1.08); }
+  .dim-door:active { transform: translateY(-1px) scale(0.99); }
+  .dd-single { width: 62%; aspect-ratio: 1; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.4)); }
+  .dd-stack  {
+    display: flex; flex-direction: column; align-items: center; width: 52%;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,0.4));
+  }
+  .dd-stack .dd-yy { width: 100%; aspect-ratio: 1; margin: -2% 0; }   /* tangent: the two circles touch */
+  .dd-knob {
+    position: absolute; bottom: 11%; right: 11%;
+    width: 9px; height: 9px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(222,198,142,0.95), rgba(120,96,50,0.7));
+    box-shadow: 0 0 6px rgba(0,0,0,0.6);
+  }
+
+  .side-back { display: flex; align-items: center; justify-content: center; }
+  .side-note {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.3em; text-transform: uppercase;
+    color: rgba(220,185,120,0.42);
+  }
+
+  /* ── HALL ROOM — a hall-landing's ▶ room: fireplace-room cube, video on the
+       back (view) wall. You arrive at the THRESHOLD; ▲ steps you deeper in. ── */
+  .hallroom {
+    position: fixed; inset: 0; z-index: 100;
+    background: #0b0907; overflow: hidden;
+    perspective: 1500px;
+    animation: hr-fade 0.4s ease both;
+  }
+  @keyframes hr-fade { from { opacity: 0; } to { opacity: 1; } }
+  /* The whole cube is one "world" we push forward/back to fake walking steps. */
+  .hr-world {
+    position: absolute; inset: 0;
+    transform-origin: 50% 58%;
+    transition: transform 0.95s cubic-bezier(0.16, 1, 0.3, 1), filter 0.95s ease;
+    will-change: transform;
+  }
+  .hr-world.hr-approach  { transform: scale(0.40) translateY(6%);  filter: brightness(0.36); }  /* far — just appeared */
+  .hr-world.hr-threshold { transform: scale(0.84) translateY(1.5%); filter: brightness(0.84); }  /* at the doorway, room ahead */
+  .hr-world.hr-inside    { transform: scale(1.16);                  filter: brightness(1.05); }  /* stepped in (▲) */
+  .hr-back {
+    position: absolute; top: 0; bottom: 23%; left: 14%; right: 14%;
+    overflow: hidden; z-index: 4; background: #050403;
+    box-shadow: inset 0 0 90px rgba(0,0,0,0.6), 0 0 0 2px rgba(20,15,9,0.9);
+  }
+  .hr-video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+  .hr-wash {            /* settle the clip into the firelit room */
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 70% at 50% 46%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.5) 100%),
+      linear-gradient(180deg, rgba(20,12,4,0.16) 0%, rgba(20,12,4,0) 24%, rgba(8,5,2,0.28) 100%);
+    box-shadow: inset 0 0 70px rgba(0,0,0,0.45);
+  }
+  @media (orientation: portrait) {
+    .hr-back { left: 6%; right: 6%; bottom: 32%; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     WAVE PORTAL — riddle overlay on the held skull-4 frame: ancient text
+     rising from the book, two touch points (chandelier + skull), and the
+     fire/spark burst when both are touched.
+     The stage is a 16:9 box matching the object-fit:contain video, so the
+     overlay anchors line up with the scene features.
+     ═══════════════════════════════════════════════════════════════════ */
+  .portal-scene {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: min(100vw, 177.78vh); height: min(56.25vw, 100vh);
+    z-index: 140; pointer-events: none;
+  }
+  /* drifting smoke + light crystals + sparks — the living backdrop of the letters */
+  .portal-aether {
+    position: absolute; left: 52%; top: 62%; transform: translate(-50%, -50%);
+    width: 62%; height: 30%; pointer-events: none;
+    -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 42%, transparent 80%);
+            mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 42%, transparent 80%);
+  }
+  /* ancient inscription rising out of the book — small, not wide */
+  .portal-glyphs {
+    position: absolute; left: 52%; top: 62%; transform: translate(-50%, -50%);
+    display: flex; gap: 0.02em; white-space: nowrap;
+    font-family: 'Cinzel', serif; font-weight: 600;
+    font-size: clamp(12px, 1.5vw, 19px); letter-spacing: 0.04em;
+    color: #ffe6a6;
+  }
+  .pg-char {
+    display: inline-block;
+    text-shadow: 0 0 8px rgba(255,196,92,0.9), 0 0 20px rgba(255,150,40,0.55), 0 1px 2px rgba(0,0,0,0.85);
+    animation: pg-pop 1.1s cubic-bezier(0.18, 1.4, 0.4, 1) both;
+  }
+  @keyframes pg-pop {
+    0%   { opacity: 0; transform: translateY(34px) scale(0.3); filter: blur(4px) brightness(2.4); }
+    55%  { opacity: 1; transform: translateY(-5px) scale(1.16); filter: blur(0) brightness(1.7); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0) brightness(1); }
+  }
+  /* HIDDEN touch points — no ring; they must be found by guessing. */
+  .portal-touch {
+    position: absolute; transform: translate(-50%, -50%);
+    width: 16%; height: 22%; border: none; background: none; padding: 0;
+    pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .portal-touch:active { background: radial-gradient(circle, rgba(255,210,120,0.18), transparent 70%); }
+  .pt-chandelier { left: 79%; top: 33%; }
+  .pt-skull      { left: 25%; top: 68%; }
+  .portal-burst {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  /* stepping forward into the hallway — the held clip pushes in */
+  .lw-fsvideo.stepped-in video {
+    transform: scale(1.22);
+    transition: transform 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* the wandering orb */
+  .portal-orb {
+    position: absolute; transform: translate(-50%, -50%);
+    width: clamp(58px, 7vw, 96px); height: clamp(58px, 7vw, 96px);
+    border: none; background: none; padding: 0; pointer-events: auto;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: transform 0.45s ease, opacity 0.45s ease;
+  }
+  .portal-orb .orb-core {
+    position: absolute; inset: 24%; border-radius: 50%;
+    background: radial-gradient(circle at 36% 32%, #ffffff, #bfe6ff 38%, #6db4f0 64%, #2b6fd0 100%);
+    box-shadow: 0 0 26px rgba(150,210,255,0.9), 0 0 60px rgba(110,180,255,0.6), inset 0 0 18px rgba(255,255,255,0.7);
+    animation: orb-breathe 2.4s ease-in-out infinite;
+  }
+  .portal-orb .orb-glow {
+    position: absolute; inset: -20%; border-radius: 50%;
+    background: radial-gradient(circle, rgba(150,210,255,0.4), transparent 68%);
+    animation: orb-breathe 2.4s ease-in-out infinite;
+  }
+  @keyframes orb-breathe { 0%,100% { transform: scale(0.92); } 50% { transform: scale(1.08); } }
+  .portal-orb.popped { transform: translate(-50%,-50%) scale(2.1); opacity: 0; }
+  /* the mirror */
+  .portal-mirror {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px;
+    pointer-events: auto; cursor: pointer;
+    animation: pm-rise 0.7s cubic-bezier(0.16,1,0.3,1) both;
+  }
+  @keyframes pm-rise { from { opacity: 0; transform: scale(0.86); } to { opacity: 1; transform: scale(1); } }
+  .portal-mirror.stepping { animation: pm-enter 0.72s cubic-bezier(0.6,0,0.8,0.2) forwards; }
+  @keyframes pm-enter { to { transform: scale(3.4); opacity: 0; } }
+  .pm-frame {
+    width: clamp(190px, 26vw, 360px); aspect-ratio: 3 / 4;
+    border-radius: 50% 50% 48% 48% / 42% 42% 58% 58%;
+    padding: clamp(8px, 1.1vw, 16px);
+    background: linear-gradient(160deg, #caa54e 0%, #8a6c30 18%, #efd58a 38%, #6b5326 52%, #d9b96a 70%, #4a3a1c 100%);
+    box-shadow: 0 0 40px rgba(255,210,120,0.4), 0 24px 60px rgba(0,0,0,0.7), inset 0 0 22px rgba(0,0,0,0.5);
+  }
+  .pm-inner {
+    position: relative; width: 100%; height: 100%; overflow: hidden;
+    border-radius: 50% 50% 48% 48% / 42% 42% 58% 58%;
+    background: #05060a;
+  }
+  .pm-video {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform: scaleX(-1);   /* a real mirror */
+  }
+  .pm-silhouette {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 30% 24% at 50% 34%, rgba(40,52,74,0.9), transparent 70%),
+      radial-gradient(ellipse 46% 50% at 50% 96%, rgba(34,44,64,0.9), transparent 72%),
+      linear-gradient(180deg, #0a0e16, #05060a);
+  }
+  .pm-glass {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(125deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(180,210,255,0.12) 100%);
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.55);
+  }
+  .pm-hint {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.34em; text-transform: uppercase;
+    color: rgba(248,224,160,0.85); text-shadow: 0 0 12px rgba(0,0,0,0.9);
+    animation: pm-hint-pulse 2s ease-in-out infinite;
+  }
+  @keyframes pm-hint-pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
 </style>
 </head>
 <body>

@@ -68,6 +68,7 @@ function getMusicEngine() {
       audio.src = this.tracks[idx].blobUrl || '';
       audio.volume = this.allMuted || this.musicMuted ? 0 : this.musicVol;
       audio.play().then(() => { this.playing = true; this.notify(); }).catch(() => {});
+      if (window.PadMemory) { window.PadMemory.state.music.lastTrackId = this.tracks[idx].id; window.PadMemory.save(); }
       this._mediaSession();
       this.notify();
     },
@@ -103,6 +104,7 @@ function getMusicEngine() {
     setMusicVol(v) {
       this.musicVol = v;
       audio.volume = this.allMuted || this.musicMuted ? 0 : v;
+      if (window.PadMemory) { window.PadMemory.state.music.musicVol = v; window.PadMemory.save(); }
       this.notify();
     },
     setMusicMuted(m) {
@@ -110,7 +112,7 @@ function getMusicEngine() {
       audio.volume = this.allMuted || m ? 0 : this.musicVol;
       this.notify();
     },
-    setWallVol(v)   { this.wallVol = v;   this._wallEvent(); this.notify(); },
+    setWallVol(v)   { this.wallVol = v;   if (window.PadMemory) { window.PadMemory.state.music.wallVol = v; window.PadMemory.save(); } this._wallEvent(); this.notify(); },
     setWallMuted(m) { this.wallMuted = m; this._wallEvent(); this.notify(); },
 
     toggleAllMuted() {
@@ -194,6 +196,16 @@ function getMusicEngine() {
   }).then(rows => {
     rows.forEach(t => { t.blobUrl = URL.createObjectURL(new Blob([t.data], { type: t.type })); });
     eng.tracks = rows;
+    // Restore music prefs + last selected track (paused) from user memory.
+    var mm = window.PadMemory && window.PadMemory.state.music;
+    if (mm) {
+      if (typeof mm.musicVol === 'number') eng.musicVol = mm.musicVol;
+      if (typeof mm.wallVol  === 'number') eng.wallVol  = mm.wallVol;
+      if (mm.lastTrackId) {
+        var li = rows.findIndex(t => t.id === mm.lastTrackId);
+        if (li >= 0) { eng.curIdx = li; audio.src = rows[li].blobUrl || ''; }
+      }
+    }
     eng.notify();
   }).catch(e => console.warn('music engine db', e));
 

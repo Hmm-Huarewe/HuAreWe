@@ -316,7 +316,12 @@ function SootClear({onComplete}) {
 // ── CANVAS SCENE ──────────────────────────────────────────────
 function TombCanvas({room,roomId,cracked,gemFound,opened,collectedGems,heldKeys,chakraColor,flickerT,onRockClick,onChestClick,onGemClick,onKeyClick,onTemptation,onPortalTap}) {
   const canvasRef=useRef(null);
+  const wrapRef=useRef(null);
   const W=390,H=620;
+  // Displayed size: scale the fixed-aspect scene to FILL its container as
+  // large as possible (preserving 390:620, allowed to scale up). The wrapper
+  // hugs this exact box so the % positioned hotspot overlay stays aligned.
+  const [disp,setDisp]=useState({w:W,h:H});
 
   const hexRgb=h=>{
     if(!h||h.length<7)return{r:200,g:160,b:50};
@@ -1309,6 +1314,34 @@ function TombCanvas({room,roomId,cracked,gemFound,opened,collectedGems,heldKeys,
 
   useEffect(()=>{draw();},[draw]);
 
+  // ── RESPONSIVE FIT — measure the scene container and size the canvas
+  // to fill it (contain + scale-up). Keeps the whole tomb visible with no
+  // clipping or distortion, and grows to the screen instead of sitting in
+  // a small fixed portrait box.
+  useEffect(()=>{
+    const wrap=wrapRef.current; if(!wrap)return;
+    const parent=wrap.parentElement; if(!parent)return;
+    const measure=()=>{
+      const cw=parent.clientWidth, ch=parent.clientHeight;
+      if(!cw||!ch)return;
+      // ── ASPECT-PRESERVING FIT (all devices / orientations) ───────
+      // The scene is authored in a fixed 390:620 portrait space, so we size
+      // the canvas to the LARGEST 390:620 box that fits the container
+      // (contain). This fills the screen as much as possible WITHOUT
+      // distorting the corridor — in landscape it centres with matched dark
+      // margins instead of squishing. Hotspots map proportionally to this
+      // same box, so they stay aligned at every size and rotation.
+      const scale=Math.min(cw/W, ch/H);
+      setDisp({w:Math.round(W*scale), h:Math.round(H*scale)});
+    };
+    measure();
+    const ro=new ResizeObserver(measure);
+    ro.observe(parent);
+    window.addEventListener('resize',measure);
+    window.addEventListener('orientationchange',measure);
+    return()=>{ro.disconnect();window.removeEventListener('resize',measure);window.removeEventListener('orientationchange',measure);};
+  },[]);
+
   const handleClick=useCallback((e)=>{
     const cv=canvasRef.current; if(!cv)return;
     const rect=cv.getBoundingClientRect();
@@ -1387,27 +1420,22 @@ function TombCanvas({room,roomId,cracked,gemFound,opened,collectedGems,heldKeys,
   };
 
   return (
-    <div style={{position:'relative',height:'100%',width:'auto',flexShrink:0}}>
+    <div ref={wrapRef} style={{position:'relative',width:disp.w,height:disp.h,flexShrink:0}}>
       <style>{`
-        @keyframes hs-pulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.55}50%{transform:translate(-50%,-50%) scale(1.18);opacity:1}}
-        .hs-btn{position:absolute;border:none;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;}
-        .hs-ring{position:absolute;left:50%;top:50%;border-radius:50%;border:2px solid var(--rc);box-shadow:0 0 12px var(--rc),inset 0 0 10px var(--dc);animation:hs-pulse 1.9s ease-in-out infinite;pointer-events:none;}
-        .hs-core{width:7px;height:7px;border-radius:50%;background:var(--rc);box-shadow:0 0 8px var(--rc);}
-        .hs-btn:active .hs-ring{animation:none;transform:translate(-50%,-50%) scale(.86);}
+        /* Invisible tap targets — no ring/indicator drawn, but still generous
+           hit areas so objects are reliably tappable on phones. */
+        .hs-btn{position:absolute;border:none;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transform:translate(-50%,-50%);display:block;}
       `}</style>
       <canvas ref={canvasRef} width={W} height={H}
         onClick={handleClick}
-        style={{display:'block',height:'100%',width:'auto',aspectRatio:`${W} / ${H}`,cursor:'pointer'}}/>
+        style={{display:'block',width:'100%',height:'100%',cursor:'pointer'}}/>
       <div style={{position:'absolute',inset:0,pointerEvents:'none'}}>
         {hotspots.map(h=>{
           const c=HS[h.kind]||HS.rock;
           return (
             <button key={h.key} className="hs-btn" onClick={(e)=>{e.stopPropagation();h.onClick();}}
               aria-label={c.label}
-              style={{left:`${h.x*100}%`,top:`${h.y*100}%`,width:c.size,height:c.size,pointerEvents:'all','--rc':c.ring,'--dc':c.dot}}>
-              <span className="hs-ring" style={{width:c.size,height:c.size}}/>
-              <span className="hs-core"/>
-            </button>
+              style={{left:`${h.x*100}%`,top:`${h.y*100}%`,width:c.size,height:c.size,pointerEvents:'all'}}/>
           );
         })}
       </div>
@@ -1460,9 +1488,10 @@ function QuestionOverlay({question,onAnswer,onExit,onCancel}) {
   // Randomise choice order once on mount
   const [shuffled]=useState(()=>[...question.choices].sort(()=>Math.random()-.5));
   const pick=c=>{
+    if(chosen?.correct)return;          // already answered correctly — locked
     setChosen(c);
-    if(!c.correct){setShake(true);setTimeout(()=>setShake(false),700);}
-    else setTimeout(()=>onAnswer(true),900);
+    if(c.correct){setShake(false);setTimeout(()=>onAnswer(true),900);}
+    else{setShake(true);setTimeout(()=>setShake(false),700);}
   };
   return (
     <div style={{position:'absolute',inset:0,background:'rgba(4,2,1,.93)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',zIndex:30,padding:'0 22px'}}>
@@ -1473,8 +1502,8 @@ function QuestionOverlay({question,onAnswer,onExit,onCancel}) {
         {shuffled.map((c,i)=>{
           const isCh=chosen?.symbol===c.symbol,isW=isCh&&!c.correct,isR=isCh&&c.correct;
           return (
-            <div key={i} onClick={()=>!chosen&&pick(c)} style={{
-              width:80,padding:'15px 8px',borderRadius:14,textAlign:'center',cursor:chosen?'default':'pointer',
+            <div key={i} onClick={()=>(!chosen||!chosen.correct)&&pick(c)} style={{
+              width:80,padding:'15px 8px',borderRadius:14,textAlign:'center',cursor:chosen?.correct?'default':'pointer',
               border:`1px solid ${isR?'#e8a820':isW?'#c03030':'rgba(220,168,32,.28)'}`,
               background:isR?'rgba(220,168,32,.12)':isW?'rgba(192,48,48,.1)':'rgba(220,168,32,.04)',
               transition:'all .28s',
@@ -1864,8 +1893,20 @@ function GameRoom({onExit,onCollect,initChakra=0}) {
   const blocked=trans||showQ||!!clue||!!keyPickup||!!gemCollect||showPortal||!!temptation;
 
   return (
-    <div style={{position:'absolute',inset:0,zIndex:20,display:'flex',flexDirection:'column',background:'#040201',overflow:'hidden'}}>
-      <style>{`@keyframes fade-up{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    <div className="gr-root" style={{position:'absolute',inset:0,zIndex:20,display:'flex',flexDirection:'column',background:'#040201',overflow:'hidden'}}>
+      <style>{`
+        @keyframes fade-up{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+        /* Landscape: float the d-pad over the scene so the corridor gets the
+           full viewport height instead of losing 148px to a bottom bar. */
+        @media (orientation:landscape){
+          .gr-dpad{
+            position:absolute !important; left:50% !important; bottom:10px !important;
+            transform:translateX(-50%); height:auto !important; width:auto !important;
+            background:rgba(4,2,1,.55) !important; border:1px solid rgba(220,168,32,.14) !important;
+            border-radius:18px; padding:8px 14px; backdrop-filter:blur(3px);
+          }
+        }
+      `}</style>
 
       {/* Canvas scene */}
       <div style={{flex:1,position:'relative',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',opacity:trans?0:1,transition:'opacity .35s'}}>
@@ -1928,7 +1969,7 @@ function GameRoom({onExit,onCollect,initChakra=0}) {
       </div>
 
       {/* D-pad */}
-      <div style={{flexShrink:0,height:148,background:'rgba(4,2,1,.97)',borderTop:'1px solid rgba(220,168,32,.12)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',zIndex:25}}>
+      <div className="gr-dpad" style={{flexShrink:0,height:148,background:'rgba(4,2,1,.97)',borderTop:'1px solid rgba(220,168,32,.12)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',zIndex:25}}>
         <DPad exits={{...room.exits, back: room.exits.back || '__surface'}} onMove={navigate} disabled={blocked}/>
       </div>
     </div>

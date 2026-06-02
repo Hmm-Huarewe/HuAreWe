@@ -134,9 +134,12 @@ function CloseBtn({ onClose }) {
   );
 }
 
-function AppHeader({ title, onBack }) {
+function AppHeader({ title, icon, grad, onBack }) {
   return (
     <div className="ph-header">
+      {icon != null && (
+        <div className="ph-header-icon" style={grad ? { background: grad } : undefined}>{icon}</div>
+      )}
       <div className="ph-title">{title}</div>
       <CloseBtn onClose={onBack}/>
     </div>
@@ -167,7 +170,7 @@ const FL_MODES = [
 function FlashlightApp({ flashlight, flMode, onToggle, onMode, onBack }) {
   return (
     <div className="ph-app-view">
-      <AppHeader title="Flashlight" onBack={onBack}/>
+      <AppHeader title="Flashlight" icon={<IconFlashlight/>} grad="linear-gradient(145deg,#FFE234,#FFAA00)" onBack={onBack}/>
       {/* Big ON/OFF toggle */}
       <button className={`ph-fl-toggle ${flashlight ? 'on' : ''}`} onClick={onToggle}>
         <div className="ph-fl-toggle-orb">💡</div>
@@ -217,7 +220,7 @@ const MSG_CATEGORIES = [
 function MessagesMenu({ messages, unread, onOpen, onBack }) {
   return (
     <div className="ph-app-view">
-      <AppHeader title="Messages" onBack={onBack}/>
+      <AppHeader title="Messages" icon={<IconMessages/>} grad="linear-gradient(145deg,#34C759,#1A8A36)" onBack={onBack}/>
       <div className="ph-nav-list">
         {MSG_CATEGORIES.map(c => {
           const count = messages.filter(m => m.type === c.type).length;
@@ -239,7 +242,7 @@ function MessagesList({ messages, category, onBack }) {
   const title = cat ? cat.label : 'Messages';
   return (
     <div className="ph-app-view">
-      <AppHeader title={title} onBack={onBack}/>
+      <AppHeader title={title} icon={cat?.icon} grad={cat?.grad} onBack={onBack}/>
       <div className="msg-list">
         {filtered.length === 0 && (
           <div className="inv-empty-note">Nothing yet in this channel.</div>
@@ -262,6 +265,8 @@ function MessagesList({ messages, category, onBack }) {
 const INV_CATEGORIES = [
   { id: 'all',       label: 'All Items',     sub: 'everything collected',    grad: 'linear-gradient(145deg,#FF9500,#CC6A00)', icon: '🎒', type: null     },
   { id: 'keys',      label: 'Keys & Access', sub: 'doors and locks',         grad: 'linear-gradient(145deg,#E8C830,#B09010)', icon: '🗝️', type: 'key'    },
+  { id: 'provisions',label: 'Provisions',    sub: 'food & drink',            grad: 'linear-gradient(145deg,#34C759,#1A8A36)', icon: '🍎', type: 'food'   },
+  { id: 'crystals',  label: 'Crystals',      sub: 'raw and cleansed',        grad: 'linear-gradient(145deg,#7FE9F5,#2E8FD8)', icon: '◈',  type: 'crystal' },
   { id: 'symbols',   label: 'Symbols',       sub: 'discovered markings',     grad: 'linear-gradient(145deg,#9B59F5,#5E30D8)', icon: '✦',  type: 'symbol' },
   { id: 'fragments', label: 'Fragments',     sub: 'pieces of something larger', grad: 'linear-gradient(145deg,#34C759,#1A8A36)', icon: '◈',  type: 'fragment' },
 ];
@@ -269,7 +274,7 @@ const INV_CATEGORIES = [
 function InventoryMenu({ inv, onOpen, onBack }) {
   return (
     <div className="ph-app-view">
-      <AppHeader title="Inventory" onBack={onBack}/>
+      <AppHeader title="Inventory" icon={<IconInventory/>} grad="linear-gradient(145deg,#FF9500,#CC6A00)" onBack={onBack}/>
       <div className="ph-nav-list">
         {INV_CATEGORIES.map(c => {
           const count = c.type ? inv.filter(i => i.type === c.type).length : inv.length;
@@ -294,7 +299,7 @@ function InventoryGrid({ inv, category, onBack }) {
   const padded = [...filtered, ...Array(Math.max(0, slots - filtered.length)).fill(null)];
   return (
     <div className="ph-app-view">
-      <AppHeader title={title} onBack={onBack}/>
+      <AppHeader title={title} icon={cat?.icon} grad={cat?.grad} onBack={onBack}/>
       <div className="inv-grid">
         {padded.map((it, i) => (
           <div key={i} className={`inv-slot ${it ? 'has' : ''}`}>
@@ -365,7 +370,7 @@ function PortalViewApp({ onBack }) {
 
   return (
     <div className="ph-app-view">
-      <AppHeader title="Portal View" onBack={onBack}/>
+      <AppHeader title="Portal View" icon="⬡" grad="linear-gradient(145deg,#4A7A9B,#1A3A5C)" onBack={onBack}/>
       <div className="ph-nav-list" style={{ gap: 10 }}>
         <div style={{ fontSize: 8, letterSpacing: '0.26em', textTransform: 'uppercase',
           color: '#5a5248', marginBottom: 2 }}>Select a View</div>
@@ -443,21 +448,21 @@ function PortalViewApp({ onBack }) {
 
 // ── CHANNELS CONTENT — Parables / Tools / Links ───────────────────────
 const PARABLES_LIST = [
-  { id: 'lantern-bonfire', title: 'The Lantern and the Bonfire' },
-  { id: 'rock-river',      title: 'The Rock and the River' },
-  { id: 'garden-hose',     title: 'The Garden and the Hose' },
+  { id: 'lantern-bonfire', title: 'The Lantern and the Bonfire', icon: '✸', grad: 'linear-gradient(145deg,#F0A23C,#A1530F)' },
+  { id: 'rock-river',      title: 'The Rock and the River',      icon: '≋', grad: 'linear-gradient(145deg,#D9A23C,#8A5810)' },
+  { id: 'garden-hose',     title: 'The Garden and the Hose',     icon: '❀', grad: 'linear-gradient(145deg,#E6BE52,#9C6A16)' },
 ];
 const TOOLS_LIST = [
-  { id: 'feel-back',      title: 'The Feel-Back Loop' },
-  { id: 'observer-triad', title: 'The Observer Triad' },
-  { id: '12-laws',        title: 'The 12 Laws of the Universe' },
-  { id: '5-absolutes',    title: 'The Five Absolutes' },
-  { id: 'higher-bliss',   title: 'Awakening Higher Bliss' },
-  { id: 'parables',       title: 'Parables' },
+  { id: 'feel-back',      title: 'The Feel-Back Loop',           icon: '↻', grad: 'linear-gradient(145deg,#6A4FF0,#2E1AB8)' },
+  { id: 'observer-triad', title: 'The Observer Triad',           icon: '△', grad: 'linear-gradient(145deg,#7B5AF2,#3A22C2)' },
+  { id: '12-laws',        title: 'The 12 Laws of the Universe',  icon: '◎', grad: 'linear-gradient(145deg,#5A6AF0,#2A2AC0)' },
+  { id: '5-absolutes',    title: 'The Five Absolutes',           icon: '✦', grad: 'linear-gradient(145deg,#8654F2,#4326C4)' },
+  { id: 'higher-bliss',   title: 'Awakening Higher Bliss',       icon: '❂', grad: 'linear-gradient(145deg,#9A66F5,#5832D4)' },
+  { id: 'parables',       title: 'Parables',                     icon: '❖', grad: 'linear-gradient(145deg,#A85AE8,#6A28C0)' },
 ];
 const LINKS_LIST = [
-  { title: 'Hu-Mana Model',    url: 'https://humanamodel.com/' },
-  { title: 'Lantern of Light', url: 'https://payhip.com/b/rq3EH' },
+  { title: 'Hu-Mana Model',    url: 'https://humanamodel.com/',  icon: '◇', grad: 'linear-gradient(145deg,#2FA06A,#176040)' },
+  { title: 'Lantern of Light', url: 'https://payhip.com/b/rq3EH', icon: '✦', grad: 'linear-gradient(145deg,#2E9C99,#155E58)' },
 ];
 
 function ContentPlaceholder({ accent = '#c89040', note }) {
@@ -487,11 +492,11 @@ function ChannelsContentApp({ screen, setScreen, onBack }) {
   if (parts[0] === 'links') {
     return (
       <div className="ph-app-view">
-        <AppHeader title="Links" onBack={() => setScreen('channels')}/>
+        <AppHeader title="Links" icon="↗" grad="linear-gradient(145deg,#2A8A5C,#1A5A38)" onBack={() => setScreen('channels')}/>
         <div className="ph-nav-list">
           {LINKS_LIST.map((l, i) => (
             <NavButton key={i}
-              icon="↗" grad="linear-gradient(145deg,#2A8A5C,#1A5A38)"
+              icon={l.icon} grad={l.grad}
               label={l.title} sub={l.url.replace('https://','')}
               arrow={false}
               onClick={() => window.open(l.url, '_blank')}/>
@@ -506,7 +511,7 @@ function ChannelsContentApp({ screen, setScreen, onBack }) {
     const item = PARABLES_LIST.find(p => p.id === parts[1]);
     return (
       <div className="ph-app-view">
-        <AppHeader title={item?.title || 'Parable'} onBack={() => setScreen('channels:parables')}/>
+        <AppHeader title={item?.title || 'Parable'} icon={item?.icon || '◈'} grad={item?.grad || 'linear-gradient(145deg,#C8903C,#7A5014)'} onBack={() => setScreen('channels:parables')}/>
         <ContentPlaceholder accent="#c89040"
           note="This parable is being transcribed&#10;from the original flame."/>
       </div>
@@ -517,11 +522,11 @@ function ChannelsContentApp({ screen, setScreen, onBack }) {
   if (parts[0] === 'parables') {
     return (
       <div className="ph-app-view">
-        <AppHeader title="Parables" onBack={() => setScreen('channels')}/>
+        <AppHeader title="Parables" icon="📜" grad="linear-gradient(145deg,#C8903C,#7A5014)" onBack={() => setScreen('channels')}/>
         <div className="ph-nav-list">
           {PARABLES_LIST.map(p => (
             <NavButton key={p.id}
-              icon="◈" grad="linear-gradient(145deg,#C8903C,#7A5014)"
+              icon={p.icon} grad={p.grad}
               label={p.title}
               onClick={() => setScreen(`channels:parables:${p.id}`)}/>
           ))}
@@ -535,7 +540,7 @@ function ChannelsContentApp({ screen, setScreen, onBack }) {
     const item = TOOLS_LIST.find(t => t.id === parts[1]);
     return (
       <div className="ph-app-view">
-        <AppHeader title={item?.title || 'Tool'} onBack={() => setScreen('channels:tools')}/>
+        <AppHeader title={item?.title || 'Tool'} icon={item?.icon || '◉'} grad={item?.grad || 'linear-gradient(145deg,#5A3FE8,#2A1AB0)'} onBack={() => setScreen('channels:tools')}/>
         <ContentPlaceholder accent="#7060e8"
           note="This framework is still&#10;being mapped to the field."/>
       </div>
@@ -546,11 +551,11 @@ function ChannelsContentApp({ screen, setScreen, onBack }) {
   if (parts[0] === 'tools') {
     return (
       <div className="ph-app-view">
-        <AppHeader title="Tools" onBack={() => setScreen('channels')}/>
+        <AppHeader title="Tools" icon="⚗️" grad="linear-gradient(145deg,#5A3FE8,#2A1AB0)" onBack={() => setScreen('channels')}/>
         <div className="ph-nav-list">
           {TOOLS_LIST.map(t => (
             <NavButton key={t.id}
-              icon="◉" grad="linear-gradient(145deg,#5A3FE8,#2A1AB0)"
+              icon={t.icon} grad={t.grad}
               label={t.title}
               onClick={() => setScreen(`channels:tools:${t.id}`)}/>
           ))}
@@ -562,7 +567,7 @@ function ChannelsContentApp({ screen, setScreen, onBack }) {
   // ── Main channels menu ──
   return (
     <div className="ph-app-view">
-      <AppHeader title="Channels" onBack={onBack}/>
+      <AppHeader title="Channels" icon={<IconChannels/>} grad="linear-gradient(145deg,#9B59F5,#5E30D8)" onBack={onBack}/>
       <div className="ph-nav-list">
         <NavButton icon="⬡" grad="linear-gradient(145deg,#4A7A9B,#1A3A5C)"
           label="Portal View" sub="change the wall screen"
@@ -685,7 +690,7 @@ function LightDPad({ level, max, onChange }) {
 function MyPadApp({ fireLevel, lightLevel, channel, invCount, onFire, onLight, onChannel, onInventory, onBack }) {
   return (
     <div className="ph-app-view">
-      <AppHeader title="My Pad" onBack={onBack}/>
+      <AppHeader title="My Pad" icon={<IconMyPad/>} grad="linear-gradient(145deg,#C8782A,#7A4A14)" onBack={onBack}/>
       <div className="ph-nav-list" style={{ gap: 16 }}>
 
         {/* ── LIGHTS ── */}
@@ -782,7 +787,7 @@ function AvelionApp({ onBack }) {
 
   return (
     <div className="ph-app-view">
-      <AppHeader title="Avelion" onBack={onBack}/>
+      <AppHeader title="Avelion" icon={<IconAvelion/>} grad="linear-gradient(145deg,#F8D089,#C89038)" onBack={onBack}/>
 
       {/* Compact lantern tap */}
       <div style={{
@@ -855,16 +860,30 @@ function AvelionApp({ onBack }) {
 // ── PHONE OVERLAY ─────────────────────────────────────────────────────
 function PhoneOverlay() {
   const [raised, setRaised]   = useState(false);
+  const PM = window.PadMemory;
+  const [padView, setPadView] = useState('front'); // mirrors the Pad's current view; hide the phone inside the dungeon
   const [screen, setScreen]   = useState(null); // navigation state
   const [flashlight, setFL]   = useState(false);
   const [flMode, setFlMode]   = useState('standard');
-  const [channel, setChannel] = useState(0);
+  const [channel, setChannel] = useState(() => PM ? PM.get('world.channel', 0) : 0);
   const [messages, setMsgs]   = useState(INITIAL_MESSAGES);
-  const [inv, setInv]         = useState([]);
+  const [inv, setInv]         = useState(() => PM ? (PM.get('inventory', []) || []) : []);
   const [unread, setUnread]   = useState(1);
   const [beam, setBeam]       = useState({ x: -9999, y: -9999 });
-  const [fireLevel, setFireLvl]   = useState(1);
-  const [lightLevel, setLightLvl] = useState(3);
+  const [fireLevel, setFireLvl]   = useState(() => PM ? PM.get('world.fireLevel', 1) : 1);
+  const [lightLevel, setLightLvl] = useState(() => PM ? PM.get('world.lightLevel', 3) : 3);
+
+  // ── Persist durable state to user memory whenever it changes ──
+  useEffect(() => { if (PM) { PM.state.inventory = inv;          PM.save(); } }, [inv]);
+  useEffect(() => { if (PM) { PM.state.world.channel = channel;  PM.save(); } }, [channel]);
+  useEffect(() => { if (PM) { PM.state.world.fireLevel = fireLevel;   PM.save(); } }, [fireLevel]);
+  useEffect(() => { if (PM) { PM.state.world.lightLevel = lightLevel; PM.save(); } }, [lightLevel]);
+
+  // ── On mount, replay restored atmosphere so the Pad matches saved memory ──
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('pad:fire-level',   { detail: { level: fireLevel } }));
+    window.dispatchEvent(new CustomEvent('pad:lights-level', { detail: { level: lightLevel } }));
+  }, []);
 
   const setFireLevel = (lvl) => {
     if (lvl === 4 && fireLevel === 4) {
@@ -894,17 +913,98 @@ function PhoneOverlay() {
   const dragRef_     = useRef(null);
   const pinchRef_    = useRef(null);
 
-  const getDefaultScale = () => window.innerWidth <= 720 ? 0.70 : 0.49;
+  // ── Maximize (double-tap top edge) ──
+  const [maximized, setMaximized] = useState(false);
+  const maximizedRef    = useRef(false);
+  const maxTransformRef = useRef(null);   // the computed near-fullscreen transform
+  const preMaxRef       = useRef(null);   // translate/scale to restore on un-maximize
+  const lastTapRef      = useRef(0);
+  const lastTouchEndRef = useRef(0);
+
   const getDefaultRot   = () => window.innerWidth <= 720 ? 0    : 8;
+  // Base scale, then clamped so the whole phone fits the viewport height.
+  // On short (landscape) screens this is what keeps the top app icons on-screen.
+  const getDefaultScale = () => {
+    const el = phoneElRef.current;
+    const H = el ? el.offsetHeight : (window.innerWidth <= 720 ? 420 : 540);
+    const base = window.innerWidth <= 720 ? 0.70 : 0.72;
+    // 40px breathing room top+bottom; rotation adds a little bbox height too
+    const fit = (window.innerHeight - 40) / H;
+    return Math.max(0.32, Math.min(base, fit));
+  };
 
   const applyTransform = () => {
     const el = phoneElRef.current; if (!el) return;
+    if (maximizedRef.current && maxTransformRef.current) {
+      // Maximize keeps a centre pivot so its maths stay exact
+      el.style.transformOrigin = '50% 50%';
+      el.style.transform = maxTransformRef.current;
+      try { el.getAnimations().forEach(a => { if (a.startTime === null) a.cancel(); }); } catch(e) {}
+      return;
+    }
     const t = translateRef.current;
     const s = scaleRef.current || getDefaultScale();
     const r = getDefaultRot();
+    // Anchor scaling to the BOTTOM centre so shrinking never pushes the
+    // top of the phone (and its first icon row) off-screen.
+    el.style.transformOrigin = '50% 100%';
     el.style.transform = `translate(${t.x}px,${t.y}px) rotate(${r}deg) scale(${s})`;
     // Force any stuck CSS transitions to commit immediately (iframe quirk: pending transitions can stall forever)
     try { el.getAnimations().forEach(a => { if (a.startTime === null) a.cancel(); }); } catch(e) {}
+  };
+
+  // Double-tap / double-click the phone's TOP EDGE to swell it to nearly
+  // full-screen (relative to the phone's own width & height); double-tap
+  // again to drop it back to the previous size.
+  const toggleMaximize = () => {
+    const el = phoneElRef.current; if (!el || !raisedRef.current) return;
+    if (!maximizedRef.current) {
+      preMaxRef.current = { x: translateRef.current.x, y: translateRef.current.y, s: scaleRef.current };
+      // Use the element's untransformed layout geometry so this is independent
+      // of the current transform-origin (default view anchors at bottom centre).
+      const W = el.offsetWidth, H = el.offsetHeight;
+      const baseCx = el.offsetLeft + W / 2;
+      const baseCy = el.offsetTop  + H / 2;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const S  = Math.min((vh * 0.96) / H, (vw * 0.96) / W);
+      const dx = vw / 2 - baseCx, dy = vh / 2 - baseCy;
+      maxTransformRef.current = `translate(${dx}px,${dy}px) rotate(0deg) scale(${S})`;
+      maximizedRef.current = true;
+      setMaximized(true);
+      applyTransform();
+    } else {
+      maximizedRef.current = false;
+      maxTransformRef.current = null;
+      const p = preMaxRef.current || { x: 0, y: 0, s: null };
+      translateRef.current = { x: p.x, y: p.y };
+      scaleRef.current = p.s;
+      setMaximized(false);
+      applyTransform();
+    }
+  };
+
+  // Unified double-tap / double-click → maximize. Works for mouse (click) and
+  // touch (touchend). On touch we preventDefault to stop the browser's native
+  // double-tap-to-zoom from firing on the whole page.
+  const handleTopEdge = (e) => {
+    e.stopPropagation();
+    const now = Date.now();
+    if (now - lastTapRef.current < 360) {
+      lastTapRef.current = 0;
+      toggleMaximize();
+    } else {
+      lastTapRef.current = now;
+    }
+  };
+  const onTopEdgeClick = (e) => {
+    // Ignore the synthetic click that follows a handled touchend
+    if (Date.now() - lastTouchEndRef.current < 600) return;
+    handleTopEdge(e);
+  };
+  const onTopEdgeTouchEnd = (e) => {
+    e.preventDefault();         // kill native double-tap zoom on the page
+    lastTouchEndRef.current = Date.now();
+    handleTopEdge(e);
   };
 
   // Navigation helpers
@@ -918,21 +1018,53 @@ function PhoneOverlay() {
 
   const raise = () => setRaised(true);
   const lower = () => {
+    maximizedRef.current = false;
+    maxTransformRef.current = null;
+    setMaximized(false);
     translateRef.current = { x: 0, y: 0 };
     scaleRef.current = null;
     const el = phoneElRef.current;
-    if (el) { el.style.transition = 'none'; el.style.transform = ''; el.getBoundingClientRect(); el.style.transition = ''; }
+    if (el) { el.style.transition = 'none'; el.style.transform = ''; el.style.transformOrigin = ''; el.getBoundingClientRect(); el.style.transition = ''; }
     setRaised(false);
     setScreen(null);
   };
 
   useEffect(() => { raisedRef.current = raised; }, [raised]);
+
+  // Re-fit on viewport resize / orientation change while raised, so the
+  // landscape (short height) layout always keeps every icon on-screen.
+  useEffect(() => {
+    const onResize = () => {
+      if (!raisedRef.current) return;
+      if (maximizedRef.current) {
+        // recompute the maximize target for the new viewport
+        const el = phoneElRef.current; if (!el) return;
+        const W = el.offsetWidth, H = el.offsetHeight;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const S = Math.min((vh * 0.96) / H, (vw * 0.96) / W);
+        const dx = vw / 2 - (el.offsetLeft + W / 2);
+        const dy = vh / 2 - (el.offsetTop + H / 2);
+        maxTransformRef.current = `translate(${dx}px,${dy}px) rotate(0deg) scale(${S})`;
+      } else {
+        // drop any pinch override so the fresh fit-scale applies
+        scaleRef.current = null;
+      }
+      applyTransform();
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, []);
   useEffect(() => {
     const el = phoneElRef.current;
     if (raised) {
       applyTransform();
     } else if (el) {
       el.style.transform = '';
+      el.style.transformOrigin = '';
     }
     // After class swap, cancel any stuck pending transitions so the new state takes effect
     if (el) {
@@ -956,6 +1088,10 @@ function PhoneOverlay() {
         pinchRef_.current = { d0: d, s0: scaleRef.current || getDefaultScale() };
         e.preventDefault();
       } else if (e.touches.length === 1) {
+        // Don't start a phone-drag when the finger lands inside the screen —
+        // let the inner content (nav lists, message lists, etc.) scroll natively.
+        // The phone can still be dragged by its bezel / frame.
+        if (e.target.closest('.ph-screen')) { dragRef_.current = null; return; }
         const t = e.touches[0];
         dragRef_.current = { cx0: t.clientX, cy0: t.clientY, tx0: translateRef.current.x, ty0: translateRef.current.y, moved: false };
       }
@@ -1020,6 +1156,15 @@ function PhoneOverlay() {
     window.dispatchEvent(new CustomEvent('pad:channel', { detail: { id: CHANNELS[channel].id, index: channel } }));
   }, [channel]);
 
+  // The Pad broadcasts its current view; the phone steps aside inside the game
+  // dungeon (which has its own full-screen UI) so it never blocks gameplay.
+  useEffect(() => {
+    const onView = (e) => setPadView(e.detail);
+    window.addEventListener('pad:view', onView);
+    return () => window.removeEventListener('pad:view', onView);
+  }, []);
+  useEffect(() => { if (padView === 'game') setRaised(false); }, [padView]);
+
   useEffect(() => {
     const onPickup = (e) => {
       const item = e.detail;
@@ -1027,8 +1172,21 @@ function PhoneOverlay() {
       setMsgs(prev => [{ from: 'System', time: 'now', type: 'note', body: `Picked up: ${item.name}` }, ...prev]);
       if (screen !== 'messages' && !screen?.startsWith('messages:')) setUnread(u => u + 1);
     };
+    // Replace an item in place (e.g. a crystal cleansed at the sink)
+    const onUpdate = (e) => {
+      const item = e.detail;
+      setInv(prev => prev.map(p => p.id === item.id ? { ...p, ...item } : p));
+      if (item.note) {
+        setMsgs(prev => [{ from: 'System', time: 'now', type: 'note', body: item.note }, ...prev]);
+        if (screen !== 'messages' && !screen?.startsWith('messages:')) setUnread(u => u + 1);
+      }
+    };
     window.addEventListener('pad:inv-add', onPickup);
-    return () => window.removeEventListener('pad:inv-add', onPickup);
+    window.addEventListener('pad:inv-update', onUpdate);
+    return () => {
+      window.removeEventListener('pad:inv-add', onPickup);
+      window.removeEventListener('pad:inv-update', onUpdate);
+    };
   }, [screen]);
 
   useEffect(() => {
@@ -1051,6 +1209,11 @@ function PhoneOverlay() {
   ];
 
   const stop = (e) => e.stopPropagation();
+
+  // Inside the dungeon the game owns the screen — hide the Pad phone entirely so
+  // it never overlaps the game's hotspots or d-pad. Inventory/messages still
+  // update in the background via the event listeners above.
+  if (padView === 'game') return null;
 
   return (
     <>
@@ -1090,6 +1253,19 @@ function PhoneOverlay() {
           {!raised && <div className="ph-lowered-tab">Phone</div>}
           <div className="ph-notch"/>
           <div className="ph-speaker"/>
+
+          {/* Top-edge double-tap / double-click target — swells the phone to
+              near full-screen and back. Sits below the mini-player (z200) and
+              the lower-X (z100) so those stay tappable; only covers the bezel
+              + status strip, never the app header controls below it. */}
+          {raised && (
+            <div
+              className="ph-top-edge"
+              onClick={onTopEdgeClick}
+              onTouchEnd={onTopEdgeTouchEnd}
+              title="Double-tap to expand"
+            />
+          )}
 
           {/* Mini player — always on bezel when tracks loaded, single-tap mute, double-tap mixer */}
           <MiniPlayer/>
